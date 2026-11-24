@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ogór – gra karciana online</title>
+<style>
+:root{--felt2:#0d3a20;--gold:#f5c542;--ink:#1b1b1b;--red:#c62828}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:radial-gradient(ellipse at top,#1f7040,var(--felt2) 70%);background-attachment:fixed;color:#f3f3f3;min-height:100vh}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;background:rgba(0,0,0,.28);position:sticky;top:0;z-index:5}
+h1{font-size:22px;margin:0}
+h1 span{color:var(--gold)}
+.hbtns{display:flex;gap:6px}
+button{font:inherit;border:0;border-radius:10px;padding:10px 14px;background:var(--gold);color:#222;font-weight:700;cursor:pointer}
+button.ghost{background:rgba(255,255,255,.14);color:#fff;font-weight:600}
+button.sm{padding:6px 10px;font-size:13px}
+button:disabled{opacity:.5;cursor:default}
+main{max-width:920px;margin:0 auto;padding:12px}
+.panel{background:rgba(0,0,0,.22);border-radius:14px;padding:16px;margin-bottom:12px}
+.hidden{display:none!important}
+input[type=text]{font:inherit;padding:11px 12px;border-radius:10px;border:0;background:#fff;color:#222;width:100%}
+.row{display:flex;gap:8px;margin-top:10px}
+.row input{flex:1;min-width:0}
+.muted{opacity:.75;font-size:13px}
+.code{font-size:40px;font-weight:800;letter-spacing:8px;color:var(--gold);text-align:center;margin:6px 0}
+.plist .it{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.1)}
+.board{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:12px}
+.pl{background:rgba(0,0,0,.25);border-radius:10px;padding:8px 10px;border:2px solid transparent;transition:.2s}
+.pl.turn{border-color:var(--gold);box-shadow:0 0 12px rgba(245,197,66,.45)}
+.pl.out{opacity:.38}
+.pl.me .nm{color:var(--gold)}
+.pl .nm{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl .sub{font-size:12px;opacity:.8;display:flex;justify-content:space-between;margin-top:2px}
+.bar{height:6px;background:rgba(255,255,255,.15);border-radius:4px;margin-top:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#8bc34a,#ffc107,#e53935)}
+.off{color:#ff8a80;font-size:12px}
+.info{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:14px;opacity:.9;margin-bottom:8px}
+.trick{min-height:124px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;justify-content:center;padding:10px;border:2px dashed rgba(255,255,255,.18);border-radius:14px}
+.slot{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;max-width:76px;text-align:center}
+.slot .who{opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:76px}
+.empty{opacity:.5;align-self:center;font-size:14px}
+.hint{text-align:center;margin:10px 0 4px;min-height:22px;font-size:15px}
+.hint b{color:var(--gold)}
+.card{width:60px;height:86px;border-radius:8px;background:#fff;color:var(--ink);position:relative;box-shadow:0 2px 6px rgba(0,0,0,.4);font-weight:800;user-select:none;flex-shrink:0;transition:transform .15s,opacity .15s}
+.card .r{position:absolute;top:4px;left:6px;font-size:18px;line-height:1}
+.card .s1{position:absolute;top:23px;left:6px;font-size:13px;line-height:1}
+.card .s{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px;padding-top:12px}
+.card.red{color:var(--red)}
+.card.c2::after{content:"";position:absolute;inset:-3px;border-radius:10px;border:3px solid #a78bfa}
+.card.top{box-shadow:0 0 0 3px var(--gold),0 2px 8px rgba(0,0,0,.5)}
+.hand{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:14px 4px 6px}
+.hand .card.legal{cursor:pointer;transform:translateY(-8px)}
+.hand .card.legal:hover{transform:translateY(-14px)}
+.hand .card.dim{opacity:.4}
+.log{font-size:13px;opacity:.85;max-height:150px;overflow:auto;line-height:1.5}
+.log div:first-child{opacity:1;font-weight:600}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px;z-index:20}
+.mod{background:#183d27;border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:20px;max-width:460px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.mod h2{margin:0 0 10px;font-size:21px;color:var(--gold)}
+.mod p,.mod li{line-height:1.5;font-size:15px}
+.mod ul{padding-left:20px}
+.mod table{width:100%;border-collapse:collapse;margin:10px 0;font-size:15px}
+.mod td{padding:6px 4px;border-bottom:1px solid rgba(255,255,255,.1)}
+.mod td:last-child{text-align:right;font-weight:700}
+.acts{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}
+.big{font-size:17px;padding:12px 18px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:10px;z-index:30;box-shadow:0 4px 16px rgba(0,0,0,.5);max-width:90vw;text-align:center}
+.conn{background:#b71c1c;text-align:center;padding:6px;font-size:14px}
+.chatbtn{position:fixed;right:16px;bottom:16px;width:56px;height:56px;border-radius:50%;font-size:24px;padding:0;z-index:22;box-shadow:0 4px 14px rgba(0,0,0,.45)}
+.badge{position:absolute;top:-4px;right:-4px;background:#e53935;color:#fff;border-radius:10px;font-size:12px;min-width:20px;height:20px;line-height:20px;padding:0 5px}
+.chatbox{position:fixed;right:12px;bottom:12px;width:340px;max-width:calc(100vw - 24px);height:min(460px,70vh);background:#102e1d;border:1px solid rgba(255,255,255,.18);border-radius:14px;z-index:25;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,.55)}
+.chathead{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.1)}
+.chatmsgs{flex:1;overflow:auto;padding:8px 12px;font-size:14px;line-height:1.4}
+.chatmsgs .m{margin:4px 0;word-wrap:break-word}
+.chatmsgs .m b{color:var(--gold)}
+.chatmsgs .m.mine b{color:#9be7a0}
+.chatmsgs .t{opacity:.5;font-size:11px;margin-left:4px}
+.quick{display:flex;gap:4px;padding:4px 8px;flex-wrap:wrap}
+.chatform{display:flex;gap:6px;padding:8px;border-top:1px solid rgba(255,255,255,.1)}
+.chatform input{flex:1;min-width:0;padding:9px 10px}
+.chatform button{padding:9px 12px}
+@media (max-width:480px){
+ .card{width:50px;height:72px}.card .r{font-size:16px}.card .s{font-size:24px}.card .s1{top:20px;font-size:11px}
+ .hand{gap:6px}.board{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+<div class="conn hidden" id="conn">Łączenie z serwerem…</div>
+<header>
+  <h1>🥒 <span>Ogór</span></h1>
+  <div class="hbtns">
+    <button class="ghost" id="btnRules">Zasady</button>
+    <button class="ghost hidden" id="btnLeave">Wyjdź</button>
+  </div>
+</header>
+
+<main>
+  <!-- START -->
+  <section id="home">
+    <div class="panel">
+      <label class="muted" for="name">Twoje imię</label>
+      <input type="text" id="name" maxlength="16" placeholder="np. Jakub" style="margin-top:6px">
+    </div>
+    <div class="panel">
+      <h3 style="margin-top:0">Nowy pokój</h3>
+      <p class="muted">Załóż pokój i wyślij znajomym kod albo link.</p>
+      <button class="big" id="btnCreate">Załóż pokój</button>
+    </div>
+    <div class="panel">
+      <h3 style="margin-top:0">Dołącz do gry</h3>
+      <div class="row"><input type="text" id="joinCode" maxlength="4" placeholder="KOD" style="text-transform:uppercase;letter-spacing:4px;font-weight:700"><button class="big" id="btnJoin">Dołącz</button></div>
+    </div>
+    <p class="muted" style="text-align:center"><a href="lokalna.html" style="color:#fff">Gra na jednym urządzeniu (bez internetu) →</a></p>
+  </section>
+
+  <!-- POCZEKALNIA -->
+  <section id="lobby" class="hidden">
+    <div class="panel" style="text-align:center">
+      <div class="muted">Kod pokoju</div>
+      <div class="code" id="lCode"></div>
+      <button class="ghost" id="btnShare">📤 Wyślij zaproszenie</button>
+    </div>
+    <div class="panel">
+      <h3 style="margin-top:0">Gracze <span class="muted" id="lCount"></span></h3>
+      <div class="plist" id="lPlayers"></div>
+      <div id="hostCtl" class="acts">
+        <button class="ghost" id="btnBot">+ Dodaj komputer</button>
+        <button class="big" id="btnStart">Rozdaj karty</button>
+      </div>
+      <p class="muted hidden" id="waitHost" style="text-align:center">Czekamy, aż gospodarz rozpocznie grę…</p>
+    </div>
+  </section>
+
+  <!-- GRA -->
+  <section id="game" class="hidden">
+    <div class="board" id="board"></div>
+    <div class="panel">
+      <div class="info"><span id="infoL"></span><span id="infoR"></span></div>
+      <div class="trick" id="trick"></div>
+      <div class="hint" id="hint"></div>
+      <div class="hand" id="hand"></div>
+    </div>
+    <div class="panel"><div class="log" id="log"></div></div>
+  </section>
+</main>
+
+<div class="ov hidden" id="ov"><div class="mod" id="mod"></div></div>
+<div class="toast hidden" id="toast"></div>
+
+<!-- CZAT -->
+<button id="chatBtn" class="chatbtn hidden" aria-label="Czat">💬<span id="chatBadge" class="badge hidden">0</span></button>
+<div id="chatBox" class="chatbox hidden">
+  <div class="chathead"><b>Czat</b><button class="ghost sm" id="chatClose">✕</button></div>
+  <div id="chatMsgs" class="chatmsgs"></div>
+  <div class="quick"><button class="ghost sm" data-q="😂">😂</button><button class="ghost sm" data-q="👍">👍</button><button class="ghost sm" data-q="🥒">🥒</button><button class="ghost sm" data-q="😡">😡</button><button class="ghost sm" data-q="Dobra gra!">Dobra gra!</button></div>
+  <form id="chatForm" class="chatform"><input type="text" id="chatIn" maxlength="200" placeholder="Napisz wiadomość…" autocomplete="off"><button>Wyślij</button></form>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const RL={11:'W',12:'D',13:'K',14:'A'};
+const rl=r=>RL[r]||String(r);
+const isRed=s=>s==='♦'||s==='♥';
+const is2C=c=>c.r===2&&c.s==='♣';
+const cname=c=>rl(c.r)+c.s;
+const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const store={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v);}catch(e){}}};
+
+let token=store.get('ogor_token');
+if(!token){token='p-'+Math.random().toString(36).slice(2)+Date.now().toString(36);store.set('ogor_token',token);}
+let room=store.get('ogor_room');
+let S=null, rulesOpen=false, wasMyTurn=false;
+$('name').value=store.get('ogor_name')||'';
+const qr=new URLSearchParams(location.search).get('room');
+if(qr){$('joinCode').value=qr.toUpperCase();if(room&&room!==qr.toUpperCase())room=null;}
+
+const socket=io();
+socket.on('connect',()=>{$('conn').classList.add('hidden');if(room)socket.emit('join',{code:room,name:myName(),token});});
+socket.on('disconnect',()=>$('conn').classList.remove('hidden'));
+socket.on('state',s=>{S=s;room=s.code;store.set('ogor_room',room);render();});
+socket.on('err',m=>toast(m));
+socket.on('noroom',m=>{toast(m);goHome();});
+socket.on('kicked',m=>{toast(m);goHome();});
+let chat=[],unread=0,chatOpen=false;
+socket.on('chatHistory',h=>{chat=h||[];renderChat();});
+socket.on('chat',m=>{chat.push(m);if(chat.length>60)chat.shift();
+  if(!chatOpen&&S&&m.id!==S.me){unread++;toast(m.name+': '+m.text);}renderChat();});
+function renderChat(){
+  const box=$('chatMsgs');
+  box.innerHTML=chat.length?chat.map(m=>{const d=new Date(m.t);return `<div class="m ${S&&m.id===S.me?'mine':''}"><b>${esc(m.name)}:</b> ${esc(m.text)}<span class="t">${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}</span></div>`;}).join(''):'<div class="muted">Brak wiadomości. Napisz coś!</div>';
+  box.scrollTop=box.scrollHeight;
+  $('chatBadge').textContent=unread;$('chatBadge').classList.toggle('hidden',!unread);
+}
+function setChat(open){chatOpen=open;$('chatBox').classList.toggle('hidden',!open);$('chatBtn').classList.toggle('hidden',open||!S);if(open){unread=0;renderChat();}}
+$('chatBtn').onclick=()=>setChat(true);
+$('chatClose').onclick=()=>setChat(false);
+$('chatForm').onsubmit=e=>{e.preventDefault();const v=$('chatIn').value.trim();if(!v)return;socket.emit('chat',{text:v});$('chatIn').value='';};
+document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>socket.emit('chat',{text:b.dataset.q}));
+
+function myName(){return $('name').value.trim();}
+function needName(){const n=myName();if(!n){toast('Najpierw wpisz swoje imię.');$('name').focus();return null;}store.set('ogor_name',n);return n;}
+$('btnCreate').onclick=()=>{const n=needName();if(n)socket.emit('create',{name:n,token});};
+$('btnJoin').onclick=()=>{const n=needName();if(!n)return;const c=$('joinCode').value.trim().toUpperCase();if(c.length!==4)return toast('Kod ma 4 litery.');room=c;socket.emit('join',{code:c,name:n,token});};
+$('btnBot').onclick=()=>socket.emit('addBot');
+$('btnStart').onclick=()=>socket.emit('start');
+$('btnLeave').onclick=()=>{
+  if(S&&S.phase!=='lobby'&&S.phase!=='over'&&!confirmLeave())return;
+  socket.emit('leave');goHome();
+};
+function confirmLeave(){return window.confirm('Wyjść z gry? Twoje miejsce przejmie komputer.');}
+$('btnShare').onclick=async()=>{
+  const url=location.origin+'/?room='+S.code;
+  const text='Zagraj ze mną w Ogóra! Kod pokoju: '+S.code;
+  if(navigator.share){try{await navigator.share({title:'Ogór',text,url});return;}catch(e){}}
+  try{await navigator.clipboard.writeText(text+'\n'+url);toast('Skopiowano link do schowka.');}catch(e){toast(url);}
+};
+$('btnRules').onclick=showRules;
+
+function goHome(){chat=[];unread=0;setChat(false);$('chatBtn').classList.add('hidden');S=null;room=null;store.set('ogor_room',null);history.replaceState(null,'','/');closeModal();show('home');$('btnLeave').classList.add('hidden');}
+function show(id){for(const s of ['home','lobby','game'])$(s).classList.toggle('hidden',s!==id);}
+let tt;function toast(m){const t=$('toast');t.textContent=m;t.classList.remove('hidden');clearTimeout(tt);tt=setTimeout(()=>t.classList.add('hidden'),3500);}
+
+function cardHTML(c,cls='',k){
+  return `<div ${k!=null?`data-k="${k}"`:''} class="card ${isRed(c.s)?'red':''} ${is2C(c)?'c2':''} ${cls}"><span class="r">${rl(c.r)}</span><span class="s1">${c.s}</span><span class="s">${c.s}</span></div>`;
+}
+
+function render(){
+  if(!S)return;
+  $('btnLeave').classList.remove('hidden');
+  if(!chatOpen)$('chatBtn').classList.remove('hidden');
+  const isHost=S.host===S.me;
+  if(S.phase==='lobby'){
+    show('lobby');if(!rulesOpen)closeModal();
+    $('lCode').textContent=S.code;
+    $('lCount').textContent=`(${S.players.length}/8)`;
+    $('lPlayers').innerHTML=S.players.map(p=>`<div class="it"><span>${p.bot?'🤖':'🙂'} ${esc(p.name)}${p.id===S.host?' 👑':''}${p.id===S.me?' <span class="muted">(Ty)</span>':''}</span>
+      ${isHost&&p.id!==S.me?`<button class="ghost sm" data-rm="${esc(p.id)}">Usuń</button>`:''}</div>`).join('');
+    $('hostCtl').classList.toggle('hidden',!isHost);
+    $('waitHost').classList.toggle('hidden',isHost);
+    $('btnStart').disabled=S.players.length<2;
+    $('btnBot').disabled=S.players.length>=8;
+    return;
+  }
+  show('game');
+  // tablica wyników
+  $('board').innerHTML=S.players.map(p=>`
+    <div class="pl ${p.turn?'turn':''} ${p.out?'out':''} ${p.id===S.me?'me':''}">
+      <div class="nm">${p.bot?'🤖':'🙂'} ${esc(p.name)}${p.id===S.host?' 👑':''}</div>
+      <div class="sub"><span>${p.points} / ${S.limit} pkt</span><span>${p.out?'odpadł':p.cards+' 🂠'}</span></div>
+      ${!p.connected?`<div class="off">rozłączony ${isHost?`<button class="ghost sm" data-bot="${esc(p.id)}">→ komputer</button>`:''}</div>`:''}
+      <div class="bar"><i style="width:${Math.min(100,p.points/S.limit*100)}%"></i></div>
+    </div>`).join('');
+  $('infoL').textContent=`Rozdanie ${S.roundNo} · Lewa ${Math.min(S.trickNo,6)}/6`;
+  $('infoR').textContent=S.leader?`Wychodzi: ${S.leader}`:'';
+  $('trick').innerHTML=S.trick.length?S.trick.map(t=>`<div class="slot">${cardHTML(t.c,t.top?'top':'')}<span class="who">${esc(t.name)}</span></div>`).join(''):'<span class="empty">Stół jest pusty</span>';
+  let hint='';
+  const me=S.players.find(p=>p.id===S.me);
+  if(S.reveal)hint='<b>Wykładamy karty!</b> Przegrywa najwyższa.';
+  else if(S.phase!=='playing')hint='';
+  else if(S.myTurn)hint=S.top==null?'<b>Twój ruch</b> – wychodzisz, zagraj dowolną kartę.':`<b>Twój ruch</b> – daj <b>${rl(S.top)}</b> lub wyżej, albo swoją najniższą kartę.`;
+  else if(S.turnName)hint=`Ruch: <b>${esc(S.turnName)}</b>…`;
+  else hint='Koniec lewy…';
+  if(me&&me.out&&S.phase==='playing')hint='Odpadłeś – oglądasz grę. '+hint;
+  $('hint').innerHTML=hint;
+  $('hand').innerHTML=S.hand.map((c,k)=>cardHTML(c,S.myTurn?(S.legal.includes(k)?'legal':'dim'):'',k)).join('');
+  $('log').innerHTML=S.log.map(l=>`<div>${esc(l)}</div>`).join('');
+  if(S.myTurn&&!wasMyTurn&&navigator.vibrate)navigator.vibrate(120);
+  wasMyTurn=S.myTurn;
+  // okno końca rozdania / gry
+  if(S.phase==='roundEnd'||S.phase==='over'){if(!rulesOpen)openModal(summaryHTML(isHost));}
+  else if(!rulesOpen)closeModal();
+}
+
+function summaryHTML(isHost){
+  const m=S.summary;
+  const lines=m.losers.map(l=>`<b>${esc(l.name)}</b> – <b>${cname(l.card)}</b>, +${l.pts} pkt`).join('<br>');
+  const rows=m.table.map(p=>`<tr style="${p.out?'opacity:.45':''}"><td>${esc(p.name)}${p.lost?' 🥒':''}${p.out?' – odpadł':''}</td><td>${p.points} / ${S.limit}</td></tr>`).join('');
+  let h=`<h2>Koniec rozdania ${m.round}</h2>
+    <p>${m.losers.length>1?'Remis na najwyższej karcie – przegrywają wszyscy:':'Przegrywa:'}<br>${lines}</p>
+    ${m.doubled?`<p>🟣 ${esc(m.c2name)} zachował 2♣ do końca – punkty przegranego razy 2!</p>`:''}
+    ${m.playoff?`<p>⚔️ <b>Dogrywka!</b> Wszyscy pozostali przekroczyli ${S.limit-1} pkt jednocześnie – grają kolejne rozdanie. Kto w nim przegra, odpada.</p>`:''}
+    ${m.outs.length?`<p>❌ Odpada: <b>${m.outs.map(esc).join(', ')}</b></p>`:''}
+    <table>${rows}</table>`;
+  if(S.phase==='over'){
+    h+=`<h2>🏆 Wygrywa ${esc(S.winner)}!</h2>`;
+    if(m.nextGame)h+=`<p class="muted">Następną grę zaczyna <b>${esc(m.nextGame)}</b> – odpadł jako pierwszy.</p>`;
+    h+=isHost?`<div class="acts"><button class="big" data-act="again">Zagraj jeszcze raz</button></div>`:`<p class="muted">Gospodarz może rozpocząć nową grę.</p>`;
+  } else {
+    h+=`<p class="muted">Następne rozdanie zaczyna: <b>${esc(m.next)}</b></p>`;
+    h+=isHost?`<div class="acts"><button class="big" data-act="next">Następne rozdanie</button></div>`:`<p class="muted">Czekamy na gospodarza…</p>`;
+  }
+  return h;
+}
+
+document.addEventListener('click',e=>{
+  const t=e.target;
+  if(t.dataset.rm)socket.emit('remove',{id:t.dataset.rm});
+  if(t.dataset.bot)socket.emit('toBot',{id:t.dataset.bot});
+  if(t.dataset.act==='next')socket.emit('next');
+  if(t.dataset.act==='again')socket.emit('again');
+  if(t.id==='mClose'){rulesOpen=false;closeModal();render();}
+  const card=t.closest&&t.closest('#hand .card.legal');
+  if(card&&S&&S.myTurn){S.myTurn=false;socket.emit('play',{k:+card.dataset.k});}
+});
+
+function openModal(html){$('mod').innerHTML=html;$('ov').classList.remove('hidden');}
+function closeModal(){$('ov').classList.add('hidden');}
+function showRules(){
+  rulesOpen=true;
+  openModal(`<h2>Zasady gry w Ogóra</h2><ul>
+    <li>Gra od 2 do 8 osób, talia 52 kart. Każdy dostaje 6 kart, rozdawanych po dwie.</li>
+    <li>Wartości kart: 2–10 według numeru, Walet 11, Dama 12, Król 13, As 14. Kolor nie ma znaczenia (poza 2♣).</li>
+    <li>W pierwszym rozdaniu zaczyna gracz nr 1, w kolejnych – ten, kto przegrał poprzednie. Kolejną całą grę zaczyna ten, kto w poprzedniej odpadł jako pierwszy.</li>
+    <li>Wychodzący kładzie dowolną kartę. Każdy następny musi dać kartę <b>równą lub wyższą</b> od najwyższej na stole – albo, jeśli nie chce (lub nie może), swoją <b>najniższą</b> kartę.</li>
+    <li>Najniższa karta w talii to <b>2♣</b> – jeśli masz ją, a dajesz najniższą, musisz dać właśnie 2♣.</li>
+    <li>Kolejną lewę zaczyna ten, kto jako ostatni położył najwyższą kartę. Wyjątek: kto wyrzucił 2♣, ten zaczyna następną lewę.</li>
+    <li>Po 5 lewach każdemu zostaje jedna karta. W ostatniej rundzie wszyscy ją wykładają – przegrywa ten, kto ma <b>najwyższą</b>. Przy remisie przegrywają <b>wszyscy</b> z najwyższą kartą, a następne rozdanie zaczyna ten z nich, kto ma więcej punktów (przy równych – ten, kto siedział dalej od wychodzącego). Przegrany dostaje tyle punktów karnych, ile jest warta jego karta. Pozostali nie dostają nic.</li>
+    <li>Jeśli ktoś zachował <b>2♣ do samego końca</b>, punkty przegranego liczą się <b>x2</b>.</li>
+    <li>Kto zbierze <b>21 lub więcej</b> punktów, odpada. Wygrywa ostatni gracz, który został w grze. Jeśli wszyscy pozostali przekroczą limit w tym samym rozdaniu, grają <b>dogrywkę</b> – kto ją przegra, odpada.</li>
+    </ul><div class="acts"><button id="mClose">Zamknij</button></div>`);
+}
+</script>
+</body>
+</html>

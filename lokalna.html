@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ogór – gra karciana</title>
+<style>
+:root{--felt2:#0d3a20;--gold:#f5c542;--ink:#1b1b1b;--red:#c62828}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:radial-gradient(ellipse at top,#1f7040,var(--felt2) 70%);background-attachment:fixed;color:#f3f3f3;min-height:100vh}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;background:rgba(0,0,0,.28);position:sticky;top:0;z-index:5}
+h1{font-size:22px;margin:0;letter-spacing:.5px}
+h1 span{color:var(--gold)}
+.hbtns{display:flex;gap:6px}
+button{font:inherit;border:0;border-radius:10px;padding:10px 14px;background:var(--gold);color:#222;font-weight:700;cursor:pointer}
+button.ghost{background:rgba(255,255,255,.14);color:#fff;font-weight:600}
+button:disabled{opacity:.5;cursor:default}
+main{max-width:920px;margin:0 auto;padding:12px}
+.panel{background:rgba(0,0,0,.22);border-radius:14px;padding:14px;margin-bottom:12px}
+.hidden{display:none!important}
+label{font-size:14px}
+select,input[type=text]{font:inherit;padding:8px 10px;border-radius:8px;border:0;background:#fff;color:#222}
+.prow{display:flex;align-items:center;gap:8px;margin:8px 0}
+.prow .no{width:22px;opacity:.7;text-align:right}
+.prow input[type=text]{flex:1;min-width:0}
+.tog{display:flex;border-radius:8px;overflow:hidden;flex-shrink:0}
+.tog button{border-radius:0;padding:8px 10px;background:rgba(255,255,255,.14);color:#fff;font-weight:600;font-size:13px}
+.tog button.on{background:var(--gold);color:#222}
+/* scoreboard */
+.board{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:12px}
+.pl{background:rgba(0,0,0,.25);border-radius:10px;padding:8px 10px;border:2px solid transparent;transition:.2s}
+.pl.turn{border-color:var(--gold);box-shadow:0 0 12px rgba(245,197,66,.45)}
+.pl.out{opacity:.38}
+.pl .nm{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl .sub{font-size:12px;opacity:.8;display:flex;justify-content:space-between;margin-top:2px}
+.bar{height:6px;background:rgba(255,255,255,.15);border-radius:4px;margin-top:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#8bc34a,#ffc107,#e53935)}
+/* table */
+.info{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:14px;opacity:.9;margin-bottom:8px}
+.trick{min-height:124px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;justify-content:center;padding:10px;border:2px dashed rgba(255,255,255,.18);border-radius:14px}
+.slot{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;max-width:76px;text-align:center}
+.slot .who{opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:76px}
+.empty{opacity:.5;align-self:center;font-size:14px}
+.hint{text-align:center;margin:10px 0 4px;min-height:22px;font-size:15px}
+.hint b{color:var(--gold)}
+/* cards */
+.card{width:60px;height:86px;border-radius:8px;background:#fff;color:var(--ink);position:relative;box-shadow:0 2px 6px rgba(0,0,0,.4);font-weight:800;user-select:none;flex-shrink:0;transition:transform .15s,opacity .15s}
+.card .r{position:absolute;top:4px;left:6px;font-size:18px;line-height:1}
+.card .s1{position:absolute;top:23px;left:6px;font-size:13px;line-height:1}
+.card .s{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px;padding-top:12px}
+.card.red{color:var(--red)}
+.card.c2::after{content:"";position:absolute;inset:-3px;border-radius:10px;border:3px solid #a78bfa}
+.card.top{box-shadow:0 0 0 3px var(--gold),0 2px 8px rgba(0,0,0,.5)}
+.hand{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:14px 4px 6px}
+.hand .card{cursor:default}
+.hand .card.legal{cursor:pointer;transform:translateY(-8px)}
+.hand .card.legal:hover{transform:translateY(-14px)}
+.hand .card.dim{opacity:.4}
+.handttl{text-align:center;font-size:14px;opacity:.85}
+.log{font-size:13px;opacity:.85;max-height:150px;overflow:auto;line-height:1.5}
+.log div:first-child{opacity:1;font-weight:600}
+/* modal */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px;z-index:20}
+.mod{background:#183d27;border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:20px;max-width:460px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.mod h2{margin:0 0 10px;font-size:21px;color:var(--gold)}
+.mod p,.mod li{line-height:1.5;font-size:15px}
+.mod ul{padding-left:20px}
+.mod table{width:100%;border-collapse:collapse;margin:10px 0;font-size:15px}
+.mod td{padding:6px 4px;border-bottom:1px solid rgba(255,255,255,.1)}
+.mod td:last-child{text-align:right;font-weight:700}
+.mod .acts{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}
+.big{font-size:17px;padding:12px 18px}
+@media (max-width:480px){
+ .card{width:50px;height:72px}.card .r{font-size:16px}.card .s{font-size:24px}.card .s1{top:20px;font-size:11px}
+ .hand{gap:6px}.board{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>🥒 <span>Ogór</span></h1>
+  <div class="hbtns">
+    <button class="ghost" id="btnRules">Zasady</button>
+    <button class="ghost hidden" id="btnNew">Nowa gra</button>
+  </div>
+</header>
+
+<main>
+  <!-- SETUP -->
+  <section id="setup" class="panel">
+    <h2 style="margin-top:0">Nowa gra</h2>
+    <div class="prow"><label for="cnt">Liczba graczy:</label>
+      <select id="cnt"></select></div>
+    <div id="rows"></div>
+    <p style="font-size:13px;opacity:.75">Kilku ludzi gra na jednym urządzeniu – przed każdym ruchem gra poprosi o przekazanie telefonu, żeby nikt nie podglądał kart.</p>
+    <button class="big" id="btnStart">Rozdaj karty</button>
+  </section>
+
+  <!-- GAME -->
+  <section id="game" class="hidden">
+    <div class="board" id="board"></div>
+    <div class="panel">
+      <div class="info"><span id="infoL"></span><span id="infoR"></span></div>
+      <div class="trick" id="trick"></div>
+      <div class="hint" id="hint"></div>
+      <div class="handttl" id="handTtl"></div>
+      <div class="hand" id="hand"></div>
+    </div>
+    <div class="panel"><div class="log" id="log"></div></div>
+  </section>
+</main>
+
+<div class="ov hidden" id="ov"><div class="mod" id="mod"></div></div>
+
+<script>
+/* Ogór – sztuczna inteligencja gracza komputerowego.
+   Nie podgląda cudzych kart. Zna tylko: swoją rękę, karty już zagrane w tym rozdaniu,
+   liczbę kart u rywali i to, co da się wywnioskować z ich ruchów (np. kto musiał dać
+   najniższą kartę, ten nie ma nic niższego i nie ma 2♣).
+   Dla każdego dozwolonego ruchu losuje kilkaset możliwych rozkładów kart rywali,
+   rozgrywa resztę rozdania i wybiera ruch z najmniejszą oczekiwaną stratą
+   (punkty karne, ryzyko odpadnięcia, punkty dla rywali). */
+(function (root) {
+  "use strict";
+  const SUITS = ['♣', '♦', '♥', '♠'];
+  const is2C = c => c.r === 2 && c.s === '♣';
+  const key = c => c.r + c.s;
+
+  function legalOf(hand, trick) {
+    if (!trick.length) return hand.slice();
+    let top = 0; for (const t of trick) if (t.c.r > top) top = t.c.r;
+    const has = hand.some(is2C);
+    let m = 99; for (const c of hand) if (c.r < m) m = c.r;
+    return hand.filter(c => c.r >= top || (has ? is2C(c) : c.r === m));
+  }
+
+  function activeFrom(players, start) {
+    const n = players.length, res = [];
+    for (let k = 0; k < n; k++) { const i = (start + k) % n; if (!players[i].out) res.push(i); }
+    return res;
+  }
+
+  // Model ruchów rywali w symulacji: zwykle zrzucają najwyższą dozwoloną kartę,
+  // czasem zagrywają inaczej (żeby nie zakładać, że rywal jest przewidywalny).
+  function rolloutPick(hand, trick, rnd) {
+    const lg = legalOf(hand, trick);
+    if (lg.length === 1) return lg[0];
+    const x = rnd();
+    if (x < 0.15) return lg[Math.floor(rnd() * lg.length)];
+    // trzymaj 2♣ do końca, jeśli się da
+    const pool = lg.length > 1 ? lg.filter(c => !is2C(c)) : lg;
+    let b = pool[0]; for (const c of pool) if (c.r > b.r) b = c;
+    if (x < 0.3 && trick.length) {           // czasem: najniższa karta, która jeszcze bije
+      let top = 0; for (const t of trick) if (t.c.r > top) top = t.c.r;
+      const beat = pool.filter(c => c.r >= top);
+      if (beat.length) { b = beat[0]; for (const c of beat) if (c.r < b.r) b = c; }
+    }
+    return b;
+  }
+
+  function simulate(S, H, me, move, rnd) {
+    let trick = S.trick.slice(), pos = S.pos, order = S.order, trickNo = S.trickNo;
+    const take = (p, c) => { const h = H[p]; h.splice(h.indexOf(c), 1); trick.push({ p, c }); pos++; };
+    take(me, move);
+    for (let guard = 0; guard < 200; guard++) {
+      if (pos >= order.length) {
+        let top = 0, hi = null;
+        for (const t of trick) if (t.c.r >= top) { top = t.c.r; hi = t.p; }
+        const c2 = trick.find(t => is2C(t.c));
+        const lead = c2 ? c2.p : hi;
+        trickNo++; trick = []; pos = 0; order = activeFrom(S.players, lead);
+        if (trickNo >= S.handN) {                    // ostatnia runda: wykładamy
+          const fin = order.map(p => ({ p, c: H[p][0] }));
+          let t2 = 0; for (const t of fin) if (t.c.r > t2) t2 = t.c.r;
+          const mult = fin.some(t => is2C(t.c)) ? 2 : 1;
+          const res = {}; for (const t of fin) if (t.c.r === t2) res[t.p] = t.c.r * mult;
+          return res;
+        }
+        continue;
+      }
+      const p = order[pos];
+      take(p, rolloutPick(H[p], trick, rnd));
+    }
+    return {};
+  }
+
+  function fullDeck() { const d = []; for (const s of SUITS) for (let r = 2; r <= 14; r++) d.push({ r, s }); return d; }
+
+  function sampleHands(S, me, rnd) {
+    const known = new Set(S.hand.map(key).concat(S.played.map(key)));
+    const pool0 = fullDeck().filter(c => !known.has(key(c)));
+    const opp = activeFrom(S.players, 0).filter(p => p !== me && S.players[p].handSize > 0);
+    const ok = (p, c) => { const k = S.cons[p]; return !k || (c.r >= k.min && !(k.no2C && is2C(c))); };
+    // najpierw gracze z najciaśniejszymi ograniczeniami
+    opp.sort((a, b) => ((S.cons[b] || {}).min || 0) - ((S.cons[a] || {}).min || 0));
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const pool = pool0.slice();
+      for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+      const H = {}; let fail = false;
+      for (const p of opp) {
+        const need = S.players[p].handSize, h = [];
+        for (let i = 0; i < pool.length && h.length < need; i++) {
+          if (attempt < 5 && !ok(p, pool[i])) continue;
+          h.push(pool[i]); pool.splice(i, 1); i--;
+        }
+        if (h.length < need) { fail = true; break; }
+        H[p] = h;
+      }
+      if (!fail) return H;
+    }
+    return null;
+  }
+
+  function choose(S, opts) {
+    opts = opts || {};
+    const rnd = opts.rnd || Math.random;
+    const me = S.me;
+    const legal = legalOf(S.hand, S.trick);
+    if (legal.length === 1) return legal[0];
+    // ruchy o tej samej wartości są równoważne (poza 2♣) – licz tylko po jednym
+    const cand = []; const seen = new Set();
+    for (const c of legal) { const k = is2C(c) ? 'c2' : String(c.r); if (!seen.has(k)) { seen.add(k); cand.push(c); } }
+    if (cand.length === 1) return cand[0];
+    const N = opts.samples || 400;
+    const cost = new Array(cand.length).fill(0);
+    const myPts = S.players[me].points;
+    // im bliżej końca gry rywale, tym cenniejsze ich punkty
+    const oppW = p => 0.15 + 0.35 * Math.min(1, S.players[p].points / S.limit);
+    let n = 0;
+    for (let s = 0; s < N; s++) {
+      const base = sampleHands(S, me, rnd); if (!base) continue;
+      n++;
+      for (let m = 0; m < cand.length; m++) {
+        const H = {}; for (const p in base) H[p] = base[p].slice();
+        H[me] = S.hand.slice();
+        const res = simulate(S, H, me, cand[m], rnd);
+        let cst = 0;
+        for (const p in res) {
+          const pts = res[p];
+          if (+p === me) { cst += pts; if (myPts + pts >= S.limit) cst += 40; }
+          else cst -= pts * oppW(+p);
+        }
+        cost[m] += cst;
+      }
+    }
+    if (!n) { let b = legal[0]; for (const c of legal) if (c.r > b.r) b = c; return b; }
+    let best = 0;
+    for (let m = 1; m < cand.length; m++) if (cost[m] < cost[best] - 1e-9 || (Math.abs(cost[m] - cost[best]) < 1e-9 && cand[m].r > cand[best].r)) best = m;
+    return cand[best];
+  }
+
+  const api = { choose, legalOf };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.OgorAI = api;
+})(typeof self !== 'undefined' ? self : this);
+</script>
+<script>
+"use strict";
+const SUITS=['♣','♦','♥','♠'];
+const RL={11:'W',12:'D',13:'K',14:'A'};
+const rl=r=>RL[r]||String(r);
+const isRed=s=>s==='♦'||s==='♥';
+const is2C=c=>c.r===2&&c.s==='♣';
+const cname=c=>rl(c.r)+c.s;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const LIMIT=21, HAND=6;
+
+let G=null;        // stan gry
+let cfg=null;      // ustawienia graczy
+let gid=0;         // identyfikator gry (anuluje stare timery)
+
+/* ---------- ustawienia ---------- */
+function loadCfg(){
+  try{const s=JSON.parse(localStorage.getItem('ogor_cfg'));if(Array.isArray(s)&&s.length>=2&&s.length<=8)return s;}catch(e){}
+  return [{name:'Ty',human:true},{name:'Komputer 2',human:false},{name:'Komputer 3',human:false}];
+}
+function saveCfg(){try{localStorage.setItem('ogor_cfg',JSON.stringify(cfg));}catch(e){}}
+
+function renderSetup(){
+  const sel=$('cnt');
+  if(!sel.options.length){for(let i=2;i<=8;i++){const o=document.createElement('option');o.value=i;o.textContent=i;sel.appendChild(o);}}
+  sel.value=cfg.length;
+  $('rows').innerHTML=cfg.map((p,i)=>`
+    <div class="prow"><span class="no">${i+1}.</span>
+      <input type="text" maxlength="16" data-i="${i}" value="${esc(p.name)}">
+      <div class="tog"><button data-h="${i}" data-v="1" class="${p.human?'on':''}">Człowiek</button><button data-h="${i}" data-v="0" class="${p.human?'':'on'}">Komputer</button></div>
+    </div>`).join('');
+}
+$('cnt').onchange=e=>{
+  const n=+e.target.value;
+  while(cfg.length<n)cfg.push({name:'Komputer '+(cfg.length+1),human:false});
+  cfg.length=n;renderSetup();
+};
+$('rows').addEventListener('input',e=>{const i=e.target.dataset.i;if(i!==undefined)cfg[i].name=e.target.value;});
+$('rows').addEventListener('click',e=>{const i=e.target.dataset.h;if(i===undefined)return;cfg[i].human=e.target.dataset.v==='1';renderSetup();});
+$('btnStart').onclick=()=>{
+  cfg.forEach((p,i)=>{p.name=(p.name||'').trim()||('Gracz '+(i+1));});
+  saveCfg();startGame();
+};
+$('btnNew').onclick=()=>{gid++;G=null;closeModal();$('game').classList.add('hidden');$('setup').classList.remove('hidden');$('btnNew').classList.add('hidden');renderSetup();};
+$('btnRules').onclick=showRules;
+
+/* ---------- logika ---------- */
+function makeDeck(){
+  const d=[];for(const s of SUITS)for(let r=2;r<=14;r++)d.push({r,s});
+  for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}
+  return d;
+}
+const sortHand=h=>h.sort((a,b)=>a.r-b.r||SUITS.indexOf(a.s)-SUITS.indexOf(b.s));
+function activeFrom(start){const n=G.players.length,res=[];for(let k=0;k<n;k++){const i=(start+k)%n;if(!G.players[i].out)res.push(i);}return res;}
+function nextActive(i){const n=G.players.length;for(let k=1;k<=n;k++){const j=(i+k)%n;if(!G.players[j].out)return j;}return i;}
+const humansLeft=()=>G.players.filter(p=>p.human&&!p.out).length;
+const multiHuman=()=>humansLeft()>1;
+function tableTop(){return G.trick.length?Math.max(...G.trick.map(t=>t.c.r)):null;}
+function highestPlayer(){const top=tableTop();let hi=null;for(const t of G.trick)if(t.c.r===top)hi=t.p;return hi;}
+
+// Dozwolone karty: przy wyjściu dowolna; potem karta >= najwyższej na stole albo najniższa z ręki (2♣, jeśli ją masz)
+function legalCards(hand){
+  const top=tableTop();
+  if(top===null)return hand.slice();
+  const hasC2=hand.some(is2C);
+  const minR=Math.min(...hand.map(c=>c.r));
+  return hand.filter(c=>c.r>=top||(hasC2?is2C(c):c.r===minR));
+}
+
+function log(msg){G.log.unshift(msg);if(G.log.length>40)G.log.pop();}
+
+function startGame(starter=0){
+  gid++;
+  G={id:gid,players:cfg.map(p=>({name:p.name,human:p.human,points:0,out:false,hand:[]})),roundNo:0,log:[],trick:[],order:[],pos:0,turn:null,shown:null,awaiting:false,trickNo:0};
+  $('setup').classList.add('hidden');$('game').classList.remove('hidden');$('btnNew').classList.remove('hidden');
+  G.firstOut=null;
+  if(starter>0&&starter<G.players.length)log(`Grę zaczyna ${G.players[starter].name} – odpadł jako pierwszy w poprzedniej grze.`);
+  startRound(starter<G.players.length?starter:0);
+}
+
+function startRound(starter){
+  G.roundNo++;G.starter=starter;
+  const d=makeDeck(),order=activeFrom(starter);
+  G.players.forEach(p=>p.hand=[]);
+  for(let pass=0;pass<HAND/2;pass++)for(const i of order)G.players[i].hand.push(d.pop(),d.pop()); // po dwie karty
+  order.forEach(i=>sortHand(G.players[i].hand));
+  G.trickNo=1;G.played=[];G.cons={};
+  const hs=G.players.filter(p=>p.human&&!p.out);
+  G.shown=hs.length===1?G.players.indexOf(hs[0]):null;
+  log(`— Rozdanie ${G.roundNo}. Zaczyna ${G.players[starter].name}.`);
+  startTrick(starter);
+}
+
+function startTrick(leader){
+  G.leader=leader;G.order=activeFrom(leader);G.pos=0;G.trick=[];G.msg='';
+  if(G.trickNo===HAND){
+    // Ostatnia runda: wszyscy jednocześnie wykładają ostatnią kartę – bez ruchów
+    G.turn=null;G.awaiting=false;
+    G.trick=G.order.map(i=>({p:i,c:G.players[i].hand.pop()}));
+    G.pos=G.order.length;G.reveal=true;
+    log('Ostatnia runda – wszyscy wykładają karty.');
+    render();later(endTrick,1800);return;
+  }
+  G.reveal=false;
+  render();nextTurn();
+}
+
+function later(fn,ms){const id=G.id;setTimeout(()=>{if(G&&G.id===id)fn();},ms);}
+
+function nextTurn(){
+  if(G.pos>=G.order.length){G.turn=null;G.awaiting=false;render();later(endTrick,1100);return;}
+  G.turn=G.order[G.pos];
+  const p=G.players[G.turn];
+  if(!p.human){G.awaiting=false;render();later(()=>botPlay(G.turn),750);return;}
+  G.awaiting=true;
+  if(multiHuman()&&G.shown!==G.turn){G.shown=null;render();showHandoff(G.turn);}
+  else render();
+}
+
+function botPlay(i){
+  const hand=G.players[i].hand;
+  const S={hand,me:i,trick:G.trick,order:G.order,pos:G.pos,trickNo:G.trickNo,
+    players:G.players.map(q=>({out:q.out,points:q.points,handSize:q.hand.length})),
+    played:G.played,cons:G.cons,limit:LIMIT,handN:HAND};
+  let c=OgorAI.choose(S,{samples:400});
+  if(!c||!legalCards(hand).includes(c))c=legalCards(hand).sort((a,b)=>b.r-a.r)[0];
+  play(i,c);
+}
+
+function play(i,c){
+  const h=G.players[i].hand;
+  const top=tableTop();
+  if(top!==null&&c.r<top){const k=G.cons[i]||{min:0,no2C:false};G.cons[i]={min:Math.max(k.min,c.r),no2C:k.no2C||!is2C(c)};}
+  h.splice(h.indexOf(c),1);
+  G.trick.push({p:i,c});G.played.push(c);
+  G.awaiting=false;
+  if(G.players[i].human&&multiHuman())G.shown=null;
+  G.pos++;render();later(nextTurn,350);
+}
+
+function endTrick(){
+  const top=tableTop(),hi=highestPlayer();
+  const c2=G.trick.find(t=>is2C(t.c));
+  if(G.trickNo===HAND){endRound(hi,G.trick.find(t=>t.p===hi&&t.c.r===top).c,!!c2,c2?c2.p:null);return;}
+  const next=c2?c2.p:hi;
+  log(c2?`Lewa ${G.trickNo}: ${G.players[next].name} wyrzucił 2♣ – zaczyna następną lewę.`
+        :`Lewa ${G.trickNo}: najwyższa ${rl(top)} – ${G.players[next].name} zaczyna.`);
+  G.trickNo++;startTrick(next);
+}
+
+function endRound(_hi,_card,doubled,c2p){
+  // Przegrywają wszyscy z najwyższą kartą (przy remisie – kilku przegranych)
+  const top=tableTop();
+  const losers=G.trick.filter(t=>t.c.r===top);   // w kolejności od wychodzącego
+  const mult=doubled?2:1;
+  const lines=[],outs=[];
+  for(const t of losers){
+    const P=G.players[t.p],pts=t.c.r*mult;
+    P.points+=pts;
+    if(P.points>=LIMIT){P.out=true;outs.push(P.name);}
+    lines.push(`<b>${esc(P.name)}</b> – <b>${cname(t.c)}</b>, +${pts} pkt`);
+    log(`Rozdanie ${G.roundNo}: przegrywa ${P.name} (${cname(t.c)}) +${pts} pkt${doubled?' (x2)':''}.`);
+  }
+  const lset=new Set(losers.map(t=>t.p));
+  let alive=G.players.filter(p=>!p.out);
+  // Wszyscy pozostali odpadliby naraz -> dogrywka między nimi
+  let playoff=false;
+  if(alive.length===0){
+    playoff=true;
+    for(const t of losers)G.players[t.p].out=false;
+    outs.length=0;
+    alive=G.players.filter(p=>!p.out);
+    log('Wszyscy pozostali przekroczyli limit naraz – dogrywka!');
+  }
+  // Kto odpadł jako pierwszy, ten zaczyna następną grę (przy kilku naraz: więcej pkt, potem dalej od wychodzącego)
+  if(outs.length&&G.firstOut==null){
+    for(const t of losers)if(G.players[t.p].out&&(G.firstOut==null||G.players[t.p].points>=G.players[G.firstOut].points))G.firstOut=t.p;
+  }
+  const rows=G.players.map((p,i)=>`<tr style="${p.out?'opacity:.45':''}"><td>${esc(p.name)}${lset.has(i)?' 🥒':''}${p.out?' – odpadł':''}</td><td>${p.points} / ${LIMIT}</td></tr>`).join('');
+  let html=`<h2>Koniec rozdania ${G.roundNo}</h2>
+    <p>${losers.length>1?'Remis na najwyższej karcie – przegrywają wszyscy:':'Przegrywa:'}<br>${lines.join('<br>')}</p>
+    ${doubled?`<p>🟣 ${esc(G.players[c2p].name)} zachował 2♣ do końca – punkty przegranego razy 2!</p>`:''}
+    ${playoff?`<p>⚔️ <b>Dogrywka!</b> Wszyscy pozostali przekroczyli ${LIMIT-1} pkt jednocześnie – grają kolejne rozdanie. Kto w nim przegra, odpada.</p>`:''}
+    ${outs.length?`<p>❌ Odpada: <b>${outs.map(esc).join(', ')}</b> (${LIMIT} pkt lub więcej).</p>`:''}
+    <table>${rows}</table>`;
+  if(alive.length<=1){
+    html+=`<h2>🏆 Wygrywa ${esc(alive[0].name)}!</h2>`;
+    if(G.firstOut!=null)html+=`<p style="font-size:14px;opacity:.85">Następną grę zaczyna <b>${esc(G.players[G.firstOut].name)}</b> – odpadł jako pierwszy.</p>`;
+    html+=`<div class="acts"><button class="ghost" id="mSetup">Zmień graczy</button><button class="big" id="mAgain">Zagraj jeszcze raz</button></div>`;
+    G.turn=null;render();openModal(html);
+    $('mAgain').onclick=()=>{closeModal();startGame(G.firstOut??0);};
+    $('mSetup').onclick=()=>$('btnNew').click();
+    return;
+  }
+  // Następne rozdanie zaczyna przegrany. Przy kilku przegranych: ten, kto ma więcej punktów,
+  // a przy równych punktach – ten, kto siedział najdalej od wychodzącego (później w kolejce).
+  let pick=null;
+  for(const t of losers){const P=G.players[t.p];if(!pick||P.points>=G.players[pick].points)pick=t.p;}
+  const stillIn=losers.filter(t=>!G.players[t.p].out);
+  let next;
+  if(stillIn.length){next=null;for(const t of stillIn){if(next===null||G.players[t.p].points>=G.players[next].points)next=t.p;}}
+  else next=nextActive(pick);
+  G.pendingNext=next;
+  html+=`<p style="font-size:14px;opacity:.8">Następne rozdanie zaczyna: <b>${esc(G.players[next].name)}</b></p><div class="acts"><button class="big" id="mNext">Następne rozdanie</button></div>`;
+  G.turn=null;render();openModal(html);
+  $('mNext').onclick=()=>{closeModal();startRound(next);};
+}
+
+/* ---------- widok ---------- */
+function cardHTML(c,cls=''){
+  return `<div class="card ${isRed(c.s)?'red':''} ${is2C(c)?'c2':''} ${cls}"><span class="r">${rl(c.r)}</span><span class="s1">${c.s}</span><span class="s">${c.s}</span></div>`;
+}
+
+function render(){
+  if(!G)return;
+  $('board').innerHTML=G.players.map((p,i)=>`
+    <div class="pl ${i===G.turn?'turn':''} ${p.out?'out':''}">
+      <div class="nm">${p.human?'🙂':'🤖'} ${esc(p.name)}</div>
+      <div class="sub"><span>${p.points} / ${LIMIT} pkt</span><span>${p.out?'odpadł':p.hand.length+' 🂠'}</span></div>
+      <div class="bar"><i style="width:${Math.min(100,p.points/LIMIT*100)}%"></i></div>
+    </div>`).join('');
+  $('infoL').textContent=`Rozdanie ${G.roundNo} · Lewa ${Math.min(G.trickNo,HAND)}/${HAND}`;
+  $('infoR').textContent=G.leader!=null?`Wychodzi: ${G.players[G.leader].name}`:'';
+
+  const hi=highestPlayer();
+  $('trick').innerHTML=G.trick.length?G.trick.map(t=>`<div class="slot">${cardHTML(t.c,t.p===hi?'top':'')}<span class="who">${esc(G.players[t.p].name)}</span></div>`).join('')
+    :'<span class="empty">Stół jest pusty</span>';
+
+  const top=tableTop();
+  let hint='';
+  if(G.reveal)hint='<b>Wykładamy karty!</b> Przegrywa najwyższa.';
+  else if(G.turn==null)hint=G.trick.length?'Koniec lewy…':'';
+  else if(G.awaiting&&G.shown===G.turn){
+    hint=top===null?'<b>Twój ruch</b> – wychodzisz, zagraj dowolną kartę.'
+      :`<b>Twój ruch</b> – daj <b>${rl(top)}</b> lub wyżej, albo swoją najniższą kartę.`;
+  } else hint=`Ruch: <b>${esc(G.players[G.turn].name)}</b>…`;
+  $('hint').innerHTML=hint;
+
+  const hEl=$('hand');
+  if(G.shown!=null&&!G.players[G.shown].out){
+    const me=G.players[G.shown];
+    const myTurn=G.awaiting&&G.turn===G.shown;
+    const legal=myTurn?legalCards(me.hand):[];
+    $('handTtl').textContent=`Karty: ${me.name}`;
+    hEl.innerHTML=me.hand.map((c,k)=>cardHTML(c,myTurn?(legal.includes(c)?'legal':'dim'):'').replace('<div class="card','<div data-k="'+k+'" class="card')).join('');
+  } else {
+    $('handTtl').textContent=G.shown!=null&&G.players[G.shown].out?'Odpadłeś – oglądasz grę.':'';
+    hEl.innerHTML='';
+  }
+  $('log').innerHTML=G.log.slice(0,12).map(l=>`<div>${esc(l)}</div>`).join('');
+}
+
+$('hand').addEventListener('click',e=>{
+  const el=e.target.closest('.card');if(!el||!G||!G.awaiting||G.turn!==G.shown)return;
+  const me=G.players[G.shown],c=me.hand[+el.dataset.k];
+  if(c&&legalCards(me.hand).includes(c))play(G.shown,c);
+});
+
+function openModal(html){$('mod').innerHTML=html;$('ov').classList.remove('hidden');}
+function closeModal(){$('ov').classList.add('hidden');}
+
+function showHandoff(i){
+  openModal(`<h2>Kolej: ${esc(G.players[i].name)}</h2><p>Przekaż urządzenie temu graczowi. Pozostali – nie podglądać! 🙈</p>
+    <div class="acts"><button class="big" id="mShow">Pokaż moje karty</button></div>`);
+  $('mShow').onclick=()=>{G.shown=i;closeModal();render();};
+}
+
+function showRules(){
+  const prev=$('ov').classList.contains('hidden')?null:$('mod').innerHTML;
+  openModal(`<h2>Zasady gry w Ogóra</h2><ul>
+    <li>Gra od 2 do 8 osób, talia 52 kart. Każdy dostaje 6 kart, rozdawanych po dwie.</li>
+    <li>Wartości kart: 2–10 według numeru, Walet 11, Dama 12, Król 13, As 14. Kolor nie ma znaczenia (poza 2♣).</li>
+    <li>W pierwszym rozdaniu zaczyna gracz nr 1, w kolejnych – ten, kto przegrał poprzednie. Kolejną całą grę zaczyna ten, kto w poprzedniej odpadł jako pierwszy.</li>
+    <li>Wychodzący kładzie dowolną kartę. Każdy następny musi dać kartę <b>równą lub wyższą</b> od najwyższej na stole – albo, jeśli nie chce (lub nie może), swoją <b>najniższą</b> kartę.</li>
+    <li>Najniższa karta w talii to <b>2♣</b> – jeśli masz ją, a dajesz najniższą, musisz dać właśnie 2♣.</li>
+    <li>Kolejną lewę zaczyna ten, kto jako ostatni położył najwyższą kartę. Wyjątek: kto wyrzucił 2♣, ten zaczyna następną lewę.</li>
+    <li>Po 5 lewach każdemu zostaje jedna karta. W ostatniej rundzie wszyscy po prostu ją wykładają – przegrywa ten, kto ma <b>najwyższą</b>. Przy remisie przegrywają <b>wszyscy</b> z najwyższą kartą, a następne rozdanie zaczyna ten z nich, kto ma więcej punktów (przy równych – ten, kto siedział dalej od wychodzącego). Przegrany dostaje tyle punktów karnych, ile jest warta jego karta. Pozostali nie dostają nic.</li>
+    <li>Jeśli ktoś zachował <b>2♣ do samego końca</b> (została mu jako ostatnia karta), punkty przegranego liczą się <b>x2</b>.</li>
+    <li>Kto zbierze <b>21 lub więcej</b> punktów, odpada. Wygrywa ostatni gracz, który został w grze. Jeśli wszyscy pozostali przekroczą limit w tym samym rozdaniu, grają <b>dogrywkę</b> – kto ją przegra, odpada.</li>
+    </ul><div class="acts"><button id="mClose">Zamknij</button></div>`);
+  $('mClose').onclick=()=>{if(prev){openModal(prev);rebindAfterRules();}else closeModal();};
+}
+// jeśli zasady otwarto na wierzchu innego okna – przywróć jego przyciski
+function rebindAfterRules(){
+  if($('mShow'))$('mShow').onclick=()=>{G.shown=G.turn;closeModal();render();};
+  if($('mNext'))$('mNext').onclick=()=>{closeModal();startRound(G.pendingNext);};
+  if($('mAgain'))$('mAgain').onclick=()=>{closeModal();startGame(G.firstOut??0);};
+  if($('mSetup'))$('mSetup').onclick=()=>$('btnNew').click();
+}
+
+cfg=loadCfg();renderSetup();
+</script>
+</body>
+</html>

@@ -49,7 +49,12 @@ function startGame(R) {
   R.gen++;
   R.players.forEach(p => { p.points = 0; p.out = false; p.hand = []; });
   R.roundNo = 0; R.log = []; R.winner = null; R.summary = null;
-  startRound(R, 0);
+  // Grę zaczyna ten, kto w poprzedniej grze odpadł jako pierwszy
+  let st = R.nextStarterId ? idx(R, R.nextStarterId) : -1;
+  if (st > 0) log(R, `Grę zaczyna ${R.players[st].name} – odpadł jako pierwszy w poprzedniej grze.`);
+  if (st < 0) st = 0;
+  R.firstOutId = null;
+  startRound(R, st);
 }
 
 function startRound(R, starter) {
@@ -141,10 +146,16 @@ function endRound(R, c2) {
     alive = R.players.filter(p => !p.out);
     log(R, 'Wszyscy pozostali przekroczyli limit naraz – dogrywka!');
   }
+  if (sum.outs.length && R.firstOutId == null) {   // pierwszy odpadły (przy kilku: więcej pkt, potem dalej od wychodzącego)
+    let f = null;
+    for (const t of losers) if (R.players[t.p].out && (f === null || R.players[t.p].points >= R.players[f].points)) f = t.p;
+    R.firstOutId = R.nextStarterId = R.players[f].id;
+  }
   sum.table = R.players.map((p, i) => ({ name: p.name, points: p.points, out: p.out, lost: losers.some(t => t.p === i) }));
   R.turn = null;
   if (alive.length <= 1) {
     R.phase = 'over'; R.winner = alive[0].name; R.summary = sum;
+    const fo = R.players.find(p => p.id === R.firstOutId); sum.nextGame = fo ? fo.name : null;
     log(R, `🏆 Wygrywa ${R.winner}!`);
     broadcast(R); return;
   }
@@ -203,10 +214,11 @@ io.on('connection', socket => {
     name = cleanName(name); if (!name) return err('Podaj swoje imię.');
     if (!token) return err('Brak identyfikatora gracza.');
     const code = newCode();
-    const R = { code, players: [], hostId: token, phase: 'lobby', log: [], gen: 0, trick: [], active: Date.now() };
+    const R = { code, players: [], hostId: token, phase: 'lobby', log: [], gen: 0, trick: [], chat: [], active: Date.now() };
     R.players.push({ id: token, name, bot: false, connected: true, sid: socket.id, points: 0, out: false, hand: [] });
     rooms.set(code, R);
     socket.data = { code, id: token };
+    socket.emit('chatHistory', R.chat);
     broadcast(R);
   });
 
@@ -227,6 +239,7 @@ io.on('connection', socket => {
       R.players.push({ id: token, name, bot: false, connected: true, sid: socket.id, points: 0, out: false, hand: [] });
     }
     socket.data = { code: R.code, id: token };
+    socket.emit('chatHistory', R.chat);
     fixHost(R); broadcast(R);
   });
 
@@ -279,6 +292,15 @@ io.on('connection', socket => {
     Q.bot = true; Q.name = Q.name.replace(/ \(komp\.\)$/, '') + ' (komp.)';
     if (R.phase === 'playing' && R.turn === j) scheduleBot(R);
     broadcast(R);
+  });
+
+  socket.on('chat', ({ text } = {}) => {
+    const { R, P } = ctx(); if (!R) return;
+    text = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 200); if (!text) return;
+    const now = Date.now(); if (P.lastChat && now - P.lastChat < 400) return; P.lastChat = now;
+    const msg = { id: P.id, name: P.name, text, t: now };
+    R.chat.push(msg); if (R.chat.length > 60) R.chat.shift();
+    R.players.forEach(q => { if (!q.bot && q.connected && q.sid) io.to(q.sid).emit('chat', msg); });
   });
 
   socket.on('leave', () => { drop(socket, true); socket.data = {}; });
