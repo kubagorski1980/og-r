@@ -114,6 +114,7 @@ input[type=text]{font:inherit;padding:11px 12px;border-radius:10px;border:0;back
       <div class="row"><input type="text" id="joinCode" maxlength="4" placeholder="KOD" style="text-transform:uppercase;letter-spacing:4px;font-weight:700"><button class="big" id="btnJoin">Dołącz</button></div>
     </div>
     <p class="muted" style="text-align:center"><a href="lokalna.html" style="color:#fff">Gra na jednym urządzeniu (bez internetu) →</a></p>
+    <p class="muted" style="text-align:center;font-size:11px" id="ver">strona 1.4-czat · serwer: sprawdzam…</p>
   </section>
 
   <!-- POCZEKALNIA -->
@@ -186,9 +187,12 @@ socket.on('state',s=>{S=s;room=s.code;store.set('ogor_room',room);render();});
 socket.on('err',m=>toast(m));
 socket.on('noroom',m=>{toast(m);goHome();});
 socket.on('kicked',m=>{toast(m);goHome();});
-let chat=[],unread=0,chatOpen=false;
+const PAGE_VER='1.4-czat';let serverVer=null;
+socket.on('hello',h=>{serverVer=h&&h.version;$('ver').textContent=`strona ${PAGE_VER} · serwer ${serverVer||'stary'}`+(serverVer===PAGE_VER?' ✓':' ⚠️ podmień server.js');});
+setTimeout(()=>{if(!serverVer)$('ver').textContent=`strona ${PAGE_VER} · serwer STARY ⚠️ podmień server.js na GitHubie`;},5000);
+let chat=[],unread=0,chatOpen=false,pendingChat=null;
 socket.on('chatHistory',h=>{chat=h||[];renderChat();});
-socket.on('chat',m=>{chat.push(m);if(chat.length>60)chat.shift();
+socket.on('chat',m=>{if(S&&m.id===S.me)clearTimeout(pendingChat);chat.push(m);if(chat.length>60)chat.shift();
   if(!chatOpen&&S&&m.id!==S.me){unread++;toast(m.name+': '+m.text);}renderChat();});
 function renderChat(){
   const box=$('chatMsgs');
@@ -199,8 +203,13 @@ function renderChat(){
 function setChat(open){chatOpen=open;$('chatBox').classList.toggle('hidden',!open);$('chatBtn').classList.toggle('hidden',open||!S);if(open){unread=0;renderChat();}}
 $('chatBtn').onclick=()=>setChat(true);
 $('chatClose').onclick=()=>setChat(false);
-$('chatForm').onsubmit=e=>{e.preventDefault();const v=$('chatIn').value.trim();if(!v)return;socket.emit('chat',{text:v});$('chatIn').value='';};
-document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>socket.emit('chat',{text:b.dataset.q}));
+function sendChat(v){
+  socket.emit('chat',{text:v});
+  clearTimeout(pendingChat);
+  pendingChat=setTimeout(()=>toast(serverVer?'Wiadomość nie dotarła – sprawdź połączenie.':'Serwer nie obsługuje czatu – podmień server.js na GitHubie.'),3000);
+}
+$('chatForm').onsubmit=e=>{e.preventDefault();const v=$('chatIn').value.trim();if(!v)return;sendChat(v);$('chatIn').value='';};
+document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>sendChat(b.dataset.q));
 
 function myName(){return $('name').value.trim();}
 function needName(){const n=myName();if(!n){toast('Najpierw wpisz swoje imię.');$('name').focus();return null;}store.set('ogor_name',n);return n;}

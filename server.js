@@ -8,7 +8,9 @@ const AI = require('./public/ai.js');
 
 const app = express();
 app.use(express.static(path.join(__dirname, 'public')));
+const VERSION = '1.4-czat';
 app.get('/health', (req, res) => res.send('ok'));
+app.get('/version', (req, res) => res.json({ server: VERSION, czat: true }));
 const server = http.createServer(app);
 const io = new Server(server, { pingInterval: 20000, pingTimeout: 30000 });
 
@@ -207,6 +209,7 @@ function fixHost(R) {
 }
 
 io.on('connection', socket => {
+  socket.emit('hello', { version: VERSION });
   const ctx = () => { const R = rooms.get(socket.data.code); if (!R) return {}; const i = idx(R, socket.data.id); return i < 0 ? {} : { R, i, P: R.players[i] }; };
   const err = m => socket.emit('err', m);
 
