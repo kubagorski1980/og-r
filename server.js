@@ -8,7 +8,7 @@ const AI = require('./public/ai.js');
 
 const app = express();
 app.use(express.static(path.join(__dirname, 'public')));
-const VERSION = '1.4-czat';
+const VERSION = '1.5-stoly';
 app.get('/health', (req, res) => res.send('ok'));
 app.get('/version', (req, res) => res.json({ server: VERSION, czat: true }));
 const server = http.createServer(app);
@@ -177,7 +177,7 @@ function view(R, i) {
   const myTurn = R.phase === 'playing' && R.turn === i && !p.bot;
   const top = tableTop(R), hi = highestPlayer(R);
   return {
-    code: R.code, me: p.id, host: R.hostId, phase: R.phase,
+    code: R.code, table: R.name, me: p.id, host: R.hostId, phase: R.phase,
     players: R.players.map((q, j) => ({ id: q.id, name: q.name, bot: q.bot, connected: q.bot || q.connected, points: q.points, out: q.out, cards: q.hand.length, turn: j === R.turn })),
     hand: p.hand, myTurn,
     legal: myTurn ? legal(R, p.hand).map(c => p.hand.indexOf(c)) : [],
@@ -193,79 +193,135 @@ function broadcast(R) {
   R.players.forEach((p, i) => { if (!p.bot && p.connected && p.sid) io.to(p.sid).emit('state', view(R, i)); });
 }
 
-/* ================= POKOJE ================= */
+/* ================= STOŁY (POKOJE) ================= */
+// Każdy gracz ma tajny token (zna go tylko jego przeglądarka) i jawny id (widzą go inni).
 const idx = (R, id) => R.players.findIndex(p => p.id === id);
-const cleanName = n => String(n || '').trim().slice(0, 16);
-function newCode() {
-  const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-  let c; do { c = Array.from({ length: 4 }, () => A[Math.floor(Math.random() * A.length)]).join(''); } while (rooms.has(c));
-  return c;
-}
+const tidx = (R, token) => R.players.findIndex(p => p.token === token);
+const cleanName = n => String(n || '').replace(/\s+/g, ' ').trim().slice(0, 16);
+const cleanTable = n => String(n || '').replace(/\s+/g, ' ').trim().slice(0, 40);
+const rid = () => Math.random().toString(36).slice(2, 10);
+function newCode() { let c; do { c = rid(); } while (rooms.has(c)); return c; }
 function fixHost(R) {
   const h = R.players.find(p => p.id === R.hostId);
   if (h && h.connected && !h.bot) return;
   const nh = R.players.find(p => !p.bot && p.connected);
   if (nh) R.hostId = nh.id;
 }
+function newPlayer(token, name, sid) {
+  return { id: 'p-' + rid(), token, name, bot: false, connected: true, sid, points: 0, out: false, hand: [] };
+}
+
+// Lista stołów – na żywo dla wszystkich na ekranie głównym
+const watchers = new Map();   // socket.id -> token
+function listFor(token) {
+  return [...rooms.values()].sort((a, b) => b.created - a.created).map(R => {
+    const host = R.players.find(p => p.id === R.hostId);
+    const mine = R.players.find(p => p.token === token);
+    return {
+      code: R.code, name: R.name, host: host ? host.name : '—',
+      players: R.players.length, humans: R.players.filter(p => !p.bot).length,
+      status: R.phase === 'lobby' ? 'lobby' : 'game',
+      member: !!mine, isHost: !!(mine && mine.id === R.hostId)
+    };
+  });
+}
+let listTimer = null;
+function pushList() {             // grupuje zmiany, żeby nie zasypywać klientów
+  if (listTimer) return;
+  listTimer = setTimeout(() => {
+    listTimer = null;
+    for (const [sid, token] of watchers) io.to(sid).emit('tables', listFor(token));
+  }, 150);
+}
+function deleteRoom(R, msg) {
+  R.gen++;
+  R.players.forEach(p => { if (p.sid) io.to(p.sid).emit('kicked', msg); });
+  rooms.delete(R.code); pushList();
+}
 
 io.on('connection', socket => {
   socket.emit('hello', { version: VERSION });
-  const ctx = () => { const R = rooms.get(socket.data.code); if (!R) return {}; const i = idx(R, socket.data.id); return i < 0 ? {} : { R, i, P: R.players[i] }; };
+  socket.data = {};
+  const ctx = () => { const R = rooms.get(socket.data.code); if (!R) return {}; const i = tidx(R, socket.data.token); return i < 0 ? {} : { R, i, P: R.players[i] }; };
   const err = m => socket.emit('err', m);
 
-  socket.on('create', ({ name, token } = {}) => {
-    name = cleanName(name); if (!name) return err('Podaj swoje imię.');
+  socket.on('watchList', ({ token } = {}) => {
+    if (!token) return;
+    watchers.set(socket.id, token);
+    socket.emit('tables', listFor(token));
+  });
+  socket.on('unwatchList', () => watchers.delete(socket.id));
+
+  socket.on('create', ({ name, token, table } = {}) => {
+    name = cleanName(name); if (!name) return err('Najpierw wpisz swój nick.');
     if (!token) return err('Brak identyfikatora gracza.');
+    if ([...rooms.values()].filter(R => R.players.some(p => p.token === token && p.id === R.hostId)).length >= 3)
+      return err('Masz już 3 stoły – usuń któryś, zanim założysz nowy.');
     const code = newCode();
-    const R = { code, players: [], hostId: token, phase: 'lobby', log: [], gen: 0, trick: [], chat: [], active: Date.now() };
-    R.players.push({ id: token, name, bot: false, connected: true, sid: socket.id, points: 0, out: false, hand: [] });
+    const P = newPlayer(token, name, socket.id);
+    const R = { code, name: cleanTable(table) || ('Stół ' + name), created: Date.now(), players: [P], hostId: P.id,
+      phase: 'lobby', log: [], gen: 0, trick: [], chat: [], active: Date.now() };
     rooms.set(code, R);
-    socket.data = { code, id: token };
+    socket.data = { code, token };
+    watchers.delete(socket.id);
     socket.emit('chatHistory', R.chat);
-    broadcast(R);
+    broadcast(R); pushList();
   });
 
+  // Wejście do stołu z listy (albo powrót po zerwaniu połączenia)
   socket.on('join', ({ code, name, token } = {}) => {
-    const R = rooms.get(String(code || '').toUpperCase().trim());
-    if (!R) return socket.emit('noroom', 'Nie ma takiego pokoju (mógł wygasnąć).');
+    const R = rooms.get(String(code || '').trim());
+    if (!R) { pushList(); return socket.emit('noroom', 'Tego stołu już nie ma.'); }
     if (!token) return err('Brak identyfikatora gracza.');
-    const i = idx(R, token);
-    if (i >= 0) {                     // powrót do swojego miejsca
+    const i = tidx(R, token);
+    if (i >= 0) {
       const P = R.players[i];
-      P.connected = true; P.sid = socket.id; P.bot = false;
+      P.connected = true; P.sid = socket.id;
+      if (P.bot) { P.bot = false; P.name = P.name.replace(/ \(komp\.\)$/, ''); }
       if (cleanName(name) && R.phase === 'lobby') P.name = cleanName(name);
     } else {
-      name = cleanName(name); if (!name) return err('Podaj swoje imię.');
-      if (R.phase !== 'lobby') return err('Gra w tym pokoju już trwa.');
-      if (R.players.length >= MAXP) return err('Pokój jest pełny (max 8 graczy).');
-      if (R.players.some(p => p.name.toLowerCase() === name.toLowerCase())) name = name.slice(0, 13) + ' ' + (R.players.length + 1);
-      R.players.push({ id: token, name, bot: false, connected: true, sid: socket.id, points: 0, out: false, hand: [] });
+      name = cleanName(name); if (!name) return err('Najpierw wpisz swój nick.');
+      if (R.phase !== 'lobby') return err('Przy tym stole gra już trwa – poczekaj, aż się skończy.');
+      if (R.players.length >= MAXP) return err('Stół jest pełny (max 8 graczy).');
+      if (R.players.some(p => p.name.toLowerCase() === name.toLowerCase())) return err('Przy tym stole jest już ktoś o nicku „' + name + '” – zmień swój.');
+      R.players.push(newPlayer(token, name, socket.id));
     }
-    socket.data = { code: R.code, id: token };
+    socket.data = { code: R.code, token };
+    watchers.delete(socket.id);
     socket.emit('chatHistory', R.chat);
-    fixHost(R); broadcast(R);
+    fixHost(R); broadcast(R); pushList();
   });
 
+  socket.on('deleteTable', ({ code, token } = {}) => {
+    const R = rooms.get(String(code || ''));
+    if (!R) return pushList();
+    const P = R.players.find(p => p.token === token);
+    if (!P || P.id !== R.hostId) return err('Stół może usunąć tylko gospodarz.');
+    deleteRoom(R, 'Gospodarz usunął stół „' + R.name + '”.');
+  });
+
+  const isHost = (R, P) => R && P && R.hostId === P.id;
+
   socket.on('addBot', () => {
-    const { R, P } = ctx(); if (!R || R.hostId !== P.id || R.phase !== 'lobby') return;
+    const { R, P } = ctx(); if (!isHost(R, P) || R.phase !== 'lobby') return;
     if (R.players.length >= MAXP) return err('Maksymalnie 8 graczy.');
     let n = 1; while (R.players.some(p => p.name === 'Komputer ' + n)) n++;
-    R.players.push({ id: 'bot-' + Math.random().toString(36).slice(2), name: 'Komputer ' + n, bot: true, connected: true, points: 0, out: false, hand: [] });
-    broadcast(R);
+    R.players.push({ id: 'bot-' + rid(), token: null, name: 'Komputer ' + n, bot: true, connected: true, points: 0, out: false, hand: [] });
+    broadcast(R); pushList();
   });
 
   socket.on('remove', ({ id } = {}) => {
-    const { R, P } = ctx(); if (!R || R.hostId !== P.id || R.phase !== 'lobby' || id === P.id) return;
+    const { R, P } = ctx(); if (!isHost(R, P) || R.phase !== 'lobby' || id === P.id) return;
     const j = idx(R, id); if (j < 0) return;
     const [gone] = R.players.splice(j, 1);
-    if (gone.sid) io.to(gone.sid).emit('kicked', 'Gospodarz usunął Cię z pokoju.');
-    broadcast(R);
+    if (gone.sid) io.to(gone.sid).emit('kicked', 'Gospodarz wyprosił Cię od stołu.');
+    broadcast(R); pushList();
   });
 
   socket.on('start', () => {
-    const { R, P } = ctx(); if (!R || R.hostId !== P.id || R.phase !== 'lobby') return;
+    const { R, P } = ctx(); if (!isHost(R, P) || R.phase !== 'lobby') return;
     if (R.players.length < 2) return err('Potrzeba co najmniej 2 graczy (możesz dodać komputer).');
-    startGame(R);
+    startGame(R); pushList();
   });
 
   socket.on('play', ({ k } = {}) => {
@@ -276,20 +332,20 @@ io.on('connection', socket => {
   });
 
   socket.on('next', () => {
-    const { R, P } = ctx(); if (!R || R.hostId !== P.id || R.phase !== 'roundEnd') return;
+    const { R, P } = ctx(); if (!isHost(R, P) || R.phase !== 'roundEnd') return;
     startRound(R, R.pendingNext);
   });
 
   socket.on('again', () => {
-    const { R, P } = ctx(); if (!R || R.hostId !== P.id || R.phase !== 'over') return;
+    const { R, P } = ctx(); if (!isHost(R, P) || R.phase !== 'over') return;
     R.phase = 'lobby'; R.gen++; R.players = R.players.filter(p => p.bot || p.connected);
     R.players.forEach(p => { p.points = 0; p.out = false; p.hand = []; });
     R.trick = []; R.summary = null; R.winner = null; R.log = [];
-    broadcast(R);
+    broadcast(R); pushList();
   });
 
   socket.on('toBot', ({ id } = {}) => {        // gospodarz zastępuje rozłączonego gracza komputerem
-    const { R, P } = ctx(); if (!R || R.hostId !== P.id || R.phase === 'lobby') return;
+    const { R, P } = ctx(); if (!isHost(R, P) || R.phase === 'lobby') return;
     const j = idx(R, id); if (j < 0) return;
     const Q = R.players[j]; if (Q.bot || Q.connected) return;
     Q.bot = true; Q.name = Q.name.replace(/ \(komp\.\)$/, '') + ' (komp.)';
@@ -307,23 +363,24 @@ io.on('connection', socket => {
   });
 
   socket.on('leave', () => { drop(socket, true); socket.data = {}; });
-  socket.on('disconnect', () => drop(socket, false));
+  socket.on('disconnect', () => { watchers.delete(socket.id); drop(socket, false); });
 
   function drop(sock, intentional) {
     const R = rooms.get(sock.data && sock.data.code); if (!R) return;
-    const i = idx(R, sock.data.id); if (i < 0) return;
+    const i = tidx(R, sock.data.token); if (i < 0) return;
     const P = R.players[i]; if (P.sid !== sock.id) return;
     if (R.phase === 'lobby') R.players.splice(i, 1);
     else { P.connected = false; P.sid = null; if (intentional) { P.bot = true; P.name += ' (komp.)'; if (R.phase === 'playing' && R.turn === i) scheduleBot(R); } }
-    if (!R.players.some(p => !p.bot && p.connected) && R.phase === 'lobby' && !R.players.some(p => !p.bot)) { rooms.delete(R.code); return; }
-    fixHost(R); broadcast(R);
+    // pusty stół (sami nieobecni lub same komputery w poczekalni) znika
+    if (!R.players.some(p => !p.bot)) { rooms.delete(R.code); pushList(); return; }
+    fixHost(R); broadcast(R); pushList();
   }
 });
 
 // Sprzątanie: usuń pokoje bez nikogo połączonego od 30 min
 setInterval(() => {
   const now = Date.now();
-  for (const [code, R] of rooms) if (!R.players.some(p => !p.bot && p.connected) && now - R.active > 30 * 60 * 1000) rooms.delete(code);
+  for (const [code, R] of rooms) if (!R.players.some(p => !p.bot && p.connected) && now - R.active > 30 * 60 * 1000) { rooms.delete(code); pushList(); }
 }, 5 * 60 * 1000);
 
 const PORT = process.env.PORT || 3000;
