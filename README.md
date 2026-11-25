@@ -1,7 +1,5 @@
 # Ogór – gra karciana online
 
-Uruchomienie lokalnie: `npm install`, potem `npm start` i wejdź na http://localhost:3000
-
-Wdrożenie na Render: wgraj ten folder do repozytorium GitHub, a w Render wybierz
-New → Web Service (Build: `npm install`, Start: `npm start`, plan Free)
-albo New → Blueprint (użyje pliku render.yaml).
+Wszystkie pliki leżą w katalogu głównym repozytorium (bez podfolderów).
+Render: Web Service, Build `npm install`, Start `npm start`.
+Po wdrożeniu na dole strony: „strona X · serwer X ✓”. Adres /version pokazuje wersję serwera.

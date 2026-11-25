@@ -4,11 +4,21 @@ const express = require('express');
 const http = require('http');
 const path = require('path');
 const { Server } = require('socket.io');
-const AI = require('./public/ai.js');
+const fs = require('fs');
+const AI = require(fs.existsSync(path.join(__dirname, 'ai.js')) ? './ai.js' : './public/ai.js');
 
 const app = express();
-app.use(express.static(path.join(__dirname, 'public')));
-const VERSION = '1.5-stoly';
+// Pliki strony: najpierw z katalogu głównego repozytorium, a jeśli ich tam nie ma – z folderu public/.
+// Serwujemy tylko te trzy pliki (reszta repozytorium nie jest publiczna).
+const PAGES = ['index.html', 'lokalna.html', 'ai.js'];
+const pagePath = f => [path.join(__dirname, f), path.join(__dirname, 'public', f)].find(p => fs.existsSync(p));
+app.get('/', (req, res) => res.sendFile(pagePath('index.html')));
+app.get('/:f', (req, res, next) => {
+  if (!PAGES.includes(req.params.f)) return next();
+  const p = pagePath(req.params.f); if (!p) return next();
+  res.set('Cache-Control', 'no-cache'); res.sendFile(p);
+});
+const VERSION = '1.5-stoly';  // musi zgadzać się z PAGE_VER w index.html
 app.get('/health', (req, res) => res.send('ok'));
 app.get('/version', (req, res) => res.json({ server: VERSION, czat: true }));
 const server = http.createServer(app);
