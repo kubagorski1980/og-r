@@ -117,7 +117,7 @@ input[type=text]{font:inherit;padding:11px 12px;border-radius:10px;border:0;back
     </div>
     <div id="tables"><div class="panel muted">Wczytuję stoły…</div></div>
     <p class="muted" style="text-align:center"><a href="lokalna.html" style="color:#fff">Gra na jednym urządzeniu (bez internetu) →</a></p>
-    <p class="muted" style="text-align:center;font-size:11px" id="ver">strona 1.5-stoly · serwer: sprawdzam…</p>
+    <p class="muted" style="text-align:center;font-size:11px" id="ver">strona 1.6 · serwer: sprawdzam…</p>
   </section>
 
   <!-- POCZEKALNIA -->
@@ -189,7 +189,7 @@ socket.on('err',m=>toast(m));
 socket.on('noroom',m=>{toast(m);goHome();});
 socket.on('err',m=>{if(!S&&room){room=null;store.set('ogor_room',null);}});
 socket.on('kicked',m=>{toast(m);goHome();});
-const PAGE_VER='1.5-stoly';let serverVer=null;
+const PAGE_VER='1.6';let serverVer=null;
 socket.on('hello',h=>{serverVer=h&&h.version;$('ver').textContent=`strona ${PAGE_VER} · serwer ${serverVer||'stary'}`+(serverVer===PAGE_VER?' ✓':' ⚠️ podmień server.js');});
 setTimeout(()=>{if(!serverVer)$('ver').textContent=`strona ${PAGE_VER} · serwer STARY ⚠️ podmień server.js na GitHubie`;},5000);
 let chat=[],unread=0,chatOpen=false,pendingChat=null;
@@ -290,6 +290,7 @@ function render(){
   const me=S.players.find(p=>p.id===S.me);
   if(S.reveal)hint='<b>Wykładamy karty!</b> Przegrywa najwyższa.';
   else if(S.phase!=='playing')hint='';
+  else if(S.myTurn&&S.c2lead)hint='<b>Twój ruch</b> – na stole 2♣ na otwarcie: musisz dać swoją <b>najwyższą</b> kartę.';
   else if(S.myTurn)hint=S.top==null?'<b>Twój ruch</b> – wychodzisz, zagraj dowolną kartę.':`<b>Twój ruch</b> – daj <b>${rl(S.top)}</b> lub wyżej, albo swoją najniższą kartę.`;
   else if(S.turnName)hint=`Ruch: <b>${esc(S.turnName)}</b>…`;
   else hint='Koniec lewy…';
@@ -346,6 +347,7 @@ function showRules(){
     <li>W pierwszym rozdaniu zaczyna gracz nr 1, w kolejnych – ten, kto przegrał poprzednie. Kolejną całą grę zaczyna ten, kto w poprzedniej odpadł jako pierwszy.</li>
     <li>Wychodzący kładzie dowolną kartę. Każdy następny musi dać kartę <b>równą lub wyższą</b> od najwyższej na stole – albo, jeśli nie chce (lub nie może), swoją <b>najniższą</b> kartę.</li>
     <li>Najniższa karta w talii to <b>2♣</b> – jeśli masz ją, a dajesz najniższą, musisz dać właśnie 2♣.</li>
+    <li>Jeśli ktoś <b>otworzy lewę dwójką trefl</b>, każdy następny musi dać swoją <b>najwyższą</b> kartę.</li>
     <li>Kolejną lewę zaczyna ten, kto jako ostatni położył najwyższą kartę. Wyjątek: kto wyrzucił 2♣, ten zaczyna następną lewę.</li>
     <li>Po 5 lewach każdemu zostaje jedna karta. W ostatniej rundzie wszyscy ją wykładają – przegrywa ten, kto ma <b>najwyższą</b>. Przy remisie przegrywają <b>wszyscy</b> z najwyższą kartą, a następne rozdanie zaczyna ten z nich, kto ma więcej punktów (przy równych – ten, kto siedział dalej od wychodzącego). Przegrany dostaje tyle punktów karnych, ile jest warta jego karta. Pozostali nie dostają nic.</li>
     <li>Jeśli ktoś zachował <b>2♣ do samego końca</b>, punkty przegranego liczą się <b>x2</b>.</li>

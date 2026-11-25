@@ -13,6 +13,10 @@
 
   function legalOf(hand, trick) {
     if (!trick.length) return hand.slice();
+    if (is2C(trick[0].c)) {                       // lewę otworzyła 2♣ -> trzeba dać najwyższą kartę
+      let mx = 0; for (const c of hand) if (c.r > mx) mx = c.r;
+      return hand.filter(c => c.r === mx);
+    }
     let top = 0; for (const t of trick) if (t.c.r > top) top = t.c.r;
     const has = hand.some(is2C);
     let m = 99; for (const c of hand) if (c.r < m) m = c.r;
@@ -75,7 +79,7 @@
     const known = new Set(S.hand.map(key).concat(S.played.map(key)));
     const pool0 = fullDeck().filter(c => !known.has(key(c)));
     const opp = activeFrom(S.players, 0).filter(p => p !== me && S.players[p].handSize > 0);
-    const ok = (p, c) => { const k = S.cons[p]; return !k || (c.r >= k.min && !(k.no2C && is2C(c))); };
+    const ok = (p, c) => { const k = S.cons[p]; return !k || (c.r >= (k.min || 0) && c.r <= (k.max || 14) && !(k.no2C && is2C(c))); };
     // najpierw gracze z najciaśniejszymi ograniczeniami
     opp.sort((a, b) => ((S.cons[b] || {}).min || 0) - ((S.cons[a] || {}).min || 0));
     for (let attempt = 0; attempt < 6; attempt++) {

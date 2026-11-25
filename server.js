@@ -18,7 +18,7 @@ app.get('/:f', (req, res, next) => {
   const p = pagePath(req.params.f); if (!p) return next();
   res.set('Cache-Control', 'no-cache'); res.sendFile(p);
 });
-const VERSION = '1.5-stoly';  // musi zgadzać się z PAGE_VER w index.html
+const VERSION = '1.6';  // musi zgadzać się z PAGE_VER w index.html
 app.get('/health', (req, res) => res.send('ok'));
 app.get('/version', (req, res) => res.json({ server: VERSION, czat: true }));
 const server = http.createServer(app);
@@ -50,6 +50,10 @@ function highestPlayer(R) { const top = tableTop(R); let hi = null; for (const t
 function legal(R, hand) {
   const top = tableTop(R);
   if (top === null) return hand.slice();
+  if (is2C(R.trick[0].c)) {          // lewę otworzyła 2♣ -> każdy musi dać swoją najwyższą kartę
+    const mx = Math.max(...hand.map(c => c.r));
+    return hand.filter(c => c.r === mx);
+  }
   const hasC2 = hand.some(is2C);
   const minR = Math.min(...hand.map(c => c.r));
   return hand.filter(c => c.r >= top || (hasC2 ? is2C(c) : c.r === minR));
@@ -117,9 +121,11 @@ function scheduleBot(R) {
 function play(R, i, c) {
   const h = R.players[i].hand;
   const top = tableTop(R);
-  if (top !== null && c.r < top) {   // musiał dać najniższą -> nie ma nic niższego ani 2♣ (wiedza jawna dla wszystkich)
-    const k = R.cons[i] || { min: 0, no2C: false };
-    R.cons[i] = { min: Math.max(k.min, c.r), no2C: k.no2C || !is2C(c) };
+  const k = R.cons[i] || { min: 0, max: 14, no2C: false };
+  if (R.trick.length && is2C(R.trick[0].c)) {     // na 2♣ dał najwyższą -> nie ma nic wyższego (wiedza jawna)
+    R.cons[i] = { ...k, max: Math.min(k.max, c.r) };
+  } else if (top !== null && c.r < top) {         // musiał dać najniższą -> nie ma nic niższego ani 2♣
+    R.cons[i] = { ...k, min: Math.max(k.min, c.r), no2C: k.no2C || !is2C(c) };
   }
   h.splice(h.indexOf(c), 1);
   R.trick.push({ p: i, c });
@@ -192,7 +198,7 @@ function view(R, i) {
     hand: p.hand, myTurn,
     legal: myTurn ? legal(R, p.hand).map(c => p.hand.indexOf(c)) : [],
     trick: (R.trick || []).map(t => ({ name: R.players[t.p].name, c: t.c, top: R.reveal ? t.c.r === top : t.p === hi })),
-    top, trickNo: R.trickNo, roundNo: R.roundNo, reveal: R.reveal,
+    top, c2lead: !!(R.trick && R.trick[0] && is2C(R.trick[0].c) && !R.reveal), trickNo: R.trickNo, roundNo: R.roundNo, reveal: R.reveal,
     leader: R.leader != null && R.players[R.leader] ? R.players[R.leader].name : null,
     turnName: R.turn != null ? R.players[R.turn].name : null,
     log: R.log.slice(0, 12), summary: R.summary, winner: R.winner, limit: LIMIT

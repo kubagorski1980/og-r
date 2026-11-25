@@ -129,6 +129,10 @@ select,input[type=text]{font:inherit;padding:8px 10px;border-radius:8px;border:0
 
   function legalOf(hand, trick) {
     if (!trick.length) return hand.slice();
+    if (is2C(trick[0].c)) {                       // lewę otworzyła 2♣ -> trzeba dać najwyższą kartę
+      let mx = 0; for (const c of hand) if (c.r > mx) mx = c.r;
+      return hand.filter(c => c.r === mx);
+    }
     let top = 0; for (const t of trick) if (t.c.r > top) top = t.c.r;
     const has = hand.some(is2C);
     let m = 99; for (const c of hand) if (c.r < m) m = c.r;
@@ -191,7 +195,7 @@ select,input[type=text]{font:inherit;padding:8px 10px;border-radius:8px;border:0
     const known = new Set(S.hand.map(key).concat(S.played.map(key)));
     const pool0 = fullDeck().filter(c => !known.has(key(c)));
     const opp = activeFrom(S.players, 0).filter(p => p !== me && S.players[p].handSize > 0);
-    const ok = (p, c) => { const k = S.cons[p]; return !k || (c.r >= k.min && !(k.no2C && is2C(c))); };
+    const ok = (p, c) => { const k = S.cons[p]; return !k || (c.r >= (k.min || 0) && c.r <= (k.max || 14) && !(k.no2C && is2C(c))); };
     // najpierw gracze z najciaśniejszymi ograniczeniami
     opp.sort((a, b) => ((S.cons[b] || {}).min || 0) - ((S.cons[a] || {}).min || 0));
     for (let attempt = 0; attempt < 6; attempt++) {
@@ -320,6 +324,7 @@ function highestPlayer(){const top=tableTop();let hi=null;for(const t of G.trick
 function legalCards(hand){
   const top=tableTop();
   if(top===null)return hand.slice();
+  if(is2C(G.trick[0].c)){const mx=Math.max(...hand.map(c=>c.r));return hand.filter(c=>c.r===mx);}  // otwarcie 2♣ -> najwyższa
   const hasC2=hand.some(is2C);
   const minR=Math.min(...hand.map(c=>c.r));
   return hand.filter(c=>c.r>=top||(hasC2?is2C(c):c.r===minR));
@@ -388,7 +393,9 @@ function botPlay(i){
 function play(i,c){
   const h=G.players[i].hand;
   const top=tableTop();
-  if(top!==null&&c.r<top){const k=G.cons[i]||{min:0,no2C:false};G.cons[i]={min:Math.max(k.min,c.r),no2C:k.no2C||!is2C(c)};}
+  const k=G.cons[i]||{min:0,max:14,no2C:false};
+  if(G.trick.length&&is2C(G.trick[0].c))G.cons[i]={...k,max:Math.min(k.max,c.r)};
+  else if(top!==null&&c.r<top)G.cons[i]={...k,min:Math.max(k.min,c.r),no2C:k.no2C||!is2C(c)};
   h.splice(h.indexOf(c),1);
   G.trick.push({p:i,c});G.played.push(c);
   G.awaiting=false;
@@ -489,7 +496,8 @@ function render(){
   if(G.reveal)hint='<b>Wykładamy karty!</b> Przegrywa najwyższa.';
   else if(G.turn==null)hint=G.trick.length?'Koniec lewy…':'';
   else if(G.awaiting&&G.shown===G.turn){
-    hint=top===null?'<b>Twój ruch</b> – wychodzisz, zagraj dowolną kartę.'
+    hint=(G.trick.length&&is2C(G.trick[0].c))?'<b>Twój ruch</b> – na stole 2♣ na otwarcie: musisz dać swoją <b>najwyższą</b> kartę.'
+      :top===null?'<b>Twój ruch</b> – wychodzisz, zagraj dowolną kartę.'
       :`<b>Twój ruch</b> – daj <b>${rl(top)}</b> lub wyżej, albo swoją najniższą kartę.`;
   } else hint=`Ruch: <b>${esc(G.players[G.turn].name)}</b>…`;
   $('hint').innerHTML=hint;
@@ -531,6 +539,7 @@ function showRules(){
     <li>W pierwszym rozdaniu zaczyna gracz nr 1, w kolejnych – ten, kto przegrał poprzednie. Kolejną całą grę zaczyna ten, kto w poprzedniej odpadł jako pierwszy.</li>
     <li>Wychodzący kładzie dowolną kartę. Każdy następny musi dać kartę <b>równą lub wyższą</b> od najwyższej na stole – albo, jeśli nie chce (lub nie może), swoją <b>najniższą</b> kartę.</li>
     <li>Najniższa karta w talii to <b>2♣</b> – jeśli masz ją, a dajesz najniższą, musisz dać właśnie 2♣.</li>
+    <li>Jeśli ktoś <b>otworzy lewę dwójką trefl</b>, każdy następny musi dać swoją <b>najwyższą</b> kartę.</li>
     <li>Kolejną lewę zaczyna ten, kto jako ostatni położył najwyższą kartę. Wyjątek: kto wyrzucił 2♣, ten zaczyna następną lewę.</li>
     <li>Po 5 lewach każdemu zostaje jedna karta. W ostatniej rundzie wszyscy po prostu ją wykładają – przegrywa ten, kto ma <b>najwyższą</b>. Przy remisie przegrywają <b>wszyscy</b> z najwyższą kartą, a następne rozdanie zaczyna ten z nich, kto ma więcej punktów (przy równych – ten, kto siedział dalej od wychodzącego). Przegrany dostaje tyle punktów karnych, ile jest warta jego karta. Pozostali nie dostają nic.</li>
     <li>Jeśli ktoś zachował <b>2♣ do samego końca</b> (została mu jako ostatnia karta), punkty przegranego liczą się <b>x2</b>.</li>
