@@ -1,0 +1,18 @@
+Bidivia 2027-03-12 decyzje-wlasciciela – pliki do RĘCZNEGO usunięcia w repozytorium GitHub
+(paczka tylko nadpisuje pliki, niczego nie kasuje; na GitHubie: plik -> ikona kosza „Delete file” -> „Commit changes”)
+
+USUNĄĆ:
+szacowanie_web.py      – martwy kod (nic go nie wywołuje)
+szacowanie.js          – martwy kod (żaden ekran go nie ładuje)
+serwer (1).py          – stara kopia serwera
+serwer-1.py            – stara kopia serwera
+serwer-2.py            – stara kopia serwera
+files35.css            – nieużywany duplikat
+instrukcja-1.html      – nieużywany duplikat
+instrukcja-1.pdf       – opcjonalnie: nieużywana kopia (program linkuje tylko instrukcja.pdf)
+
+NIE USUWAĆ (to z nich Render buduje program):
+app.js, index.html, login.html, styl.css, uklad.js, ksiegowosc.js, pzp_wykonawca.js, instrukcja.html, oferta.html, instrukcja.pdf
+ani żadnych innych plików z katalogu głównego repozytorium.
+
+Wgrać też nowy Dockerfile (jest w paczce).

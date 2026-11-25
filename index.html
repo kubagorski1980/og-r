@@ -1,338 +1,423 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Ogór – gra karciana online</title>
-<style>
-:root{--felt2:#0d3a20;--gold:#f5c542;--ink:#1b1b1b;--red:#c62828}
-*{box-sizing:border-box}
-html,body{margin:0}
-body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:radial-gradient(ellipse at top,#1f7040,var(--felt2) 70%);background-attachment:fixed;color:#f3f3f3;min-height:100vh}
-header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;background:rgba(0,0,0,.28);position:sticky;top:0;z-index:5}
-h1{font-size:22px;margin:0}
-h1 span{color:var(--gold)}
-.hbtns{display:flex;gap:6px}
-button{font:inherit;border:0;border-radius:10px;padding:10px 14px;background:var(--gold);color:#222;font-weight:700;cursor:pointer}
-button.ghost{background:rgba(255,255,255,.14);color:#fff;font-weight:600}
-button.sm{padding:6px 10px;font-size:13px}
-button:disabled{opacity:.5;cursor:default}
-main{max-width:920px;margin:0 auto;padding:12px}
-.panel{background:rgba(0,0,0,.22);border-radius:14px;padding:16px;margin-bottom:12px}
-.hidden{display:none!important}
-input[type=text]{font:inherit;padding:11px 12px;border-radius:10px;border:0;background:#fff;color:#222;width:100%}
-.row{display:flex;gap:8px;margin-top:10px}
-.row input{flex:1;min-width:0}
-.muted{opacity:.75;font-size:13px}
-.code{font-size:40px;font-weight:800;letter-spacing:8px;color:var(--gold);text-align:center;margin:6px 0}
-.plist .it{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.1)}
-.board{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:12px}
-.pl{background:rgba(0,0,0,.25);border-radius:10px;padding:8px 10px;border:2px solid transparent;transition:.2s}
-.pl.turn{border-color:var(--gold);box-shadow:0 0 12px rgba(245,197,66,.45)}
-.pl.out{opacity:.38}
-.pl.me .nm{color:var(--gold)}
-.pl .nm{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pl .sub{font-size:12px;opacity:.8;display:flex;justify-content:space-between;margin-top:2px}
-.bar{height:6px;background:rgba(255,255,255,.15);border-radius:4px;margin-top:6px;overflow:hidden}
-.bar i{display:block;height:100%;background:linear-gradient(90deg,#8bc34a,#ffc107,#e53935)}
-.off{color:#ff8a80;font-size:12px}
-.info{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:14px;opacity:.9;margin-bottom:8px}
-.trick{min-height:124px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;justify-content:center;padding:10px;border:2px dashed rgba(255,255,255,.18);border-radius:14px}
-.slot{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;max-width:76px;text-align:center}
-.slot .who{opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:76px}
-.empty{opacity:.5;align-self:center;font-size:14px}
-.hint{text-align:center;margin:10px 0 4px;min-height:22px;font-size:15px}
-.hint b{color:var(--gold)}
-.card{width:60px;height:86px;border-radius:8px;background:#fff;color:var(--ink);position:relative;box-shadow:0 2px 6px rgba(0,0,0,.4);font-weight:800;user-select:none;flex-shrink:0;transition:transform .15s,opacity .15s}
-.card .r{position:absolute;top:4px;left:6px;font-size:18px;line-height:1}
-.card .s1{position:absolute;top:23px;left:6px;font-size:13px;line-height:1}
-.card .s{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px;padding-top:12px}
-.card.red{color:var(--red)}
-.card.c2::after{content:"";position:absolute;inset:-3px;border-radius:10px;border:3px solid #a78bfa}
-.card.top{box-shadow:0 0 0 3px var(--gold),0 2px 8px rgba(0,0,0,.5)}
-.hand{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:14px 4px 6px}
-.hand .card.legal{cursor:pointer;transform:translateY(-8px)}
-.hand .card.legal:hover{transform:translateY(-14px)}
-.hand .card.dim{opacity:.4}
-.log{font-size:13px;opacity:.85;max-height:150px;overflow:auto;line-height:1.5}
-.log div:first-child{opacity:1;font-weight:600}
-.ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px;z-index:20}
-.mod{background:#183d27;border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:20px;max-width:460px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.5)}
-.mod h2{margin:0 0 10px;font-size:21px;color:var(--gold)}
-.mod p,.mod li{line-height:1.5;font-size:15px}
-.mod ul{padding-left:20px}
-.mod table{width:100%;border-collapse:collapse;margin:10px 0;font-size:15px}
-.mod td{padding:6px 4px;border-bottom:1px solid rgba(255,255,255,.1)}
-.mod td:last-child{text-align:right;font-weight:700}
-.acts{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}
-.big{font-size:17px;padding:12px 18px}
-.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:10px;z-index:30;box-shadow:0 4px 16px rgba(0,0,0,.5);max-width:90vw;text-align:center}
-.conn{background:#b71c1c;text-align:center;padding:6px;font-size:14px}
-.chatbtn{position:fixed;right:16px;bottom:16px;width:56px;height:56px;border-radius:50%;font-size:24px;padding:0;z-index:22;box-shadow:0 4px 14px rgba(0,0,0,.45)}
-.badge{position:absolute;top:-4px;right:-4px;background:#e53935;color:#fff;border-radius:10px;font-size:12px;min-width:20px;height:20px;line-height:20px;padding:0 5px}
-.chatbox{position:fixed;right:12px;bottom:12px;width:340px;max-width:calc(100vw - 24px);height:min(460px,70vh);background:#102e1d;border:1px solid rgba(255,255,255,.18);border-radius:14px;z-index:25;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,.55)}
-.chathead{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.1)}
-.chatmsgs{flex:1;overflow:auto;padding:8px 12px;font-size:14px;line-height:1.4}
-.chatmsgs .m{margin:4px 0;word-wrap:break-word}
-.chatmsgs .m b{color:var(--gold)}
-.chatmsgs .m.mine b{color:#9be7a0}
-.chatmsgs .t{opacity:.5;font-size:11px;margin-left:4px}
-.quick{display:flex;gap:4px;padding:4px 8px;flex-wrap:wrap}
-.chatform{display:flex;gap:6px;padding:8px;border-top:1px solid rgba(255,255,255,.1)}
-.chatform input{flex:1;min-width:0;padding:9px 10px}
-.chatform button{padding:9px 12px}
-@media (max-width:480px){
- .card{width:50px;height:72px}.card .r{font-size:16px}.card .s{font-size:24px}.card .s1{top:20px;font-size:11px}
- .hand{gap:6px}.board{grid-template-columns:repeat(2,1fr)}
-}
-</style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bidivia</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#071F49">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Bidivia">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/ikona-180.png?v=2027c">
+<link rel="icon" type="image/png" href="/ikona-32.png?v=2027c">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/styl.css">
 </head>
 <body>
-<div class="conn hidden" id="conn">Łączenie z serwerem…</div>
 <header>
-  <h1>🥒 <span>Ogór</span></h1>
-  <div class="hbtns">
-    <button class="ghost" id="btnRules">Zasady</button>
-    <button class="ghost hidden" id="btnLeave">Wyjdź</button>
-  </div>
+  <div class="marka" onclick="pokaz(STRONA ? 'pulpit' : 'start')" title="Pulpit"><span class="logo"><svg class="znak-bidivia" viewBox="0 0 320 320" aria-hidden="true"><polygon class="zb-g" points="0 0 0 26.67 240 160 0 293.33 0 320 240 320 320 240 240 160 320 80 240 0 0 0"/><polygon class="zb-p" points="0 66.67 0 140 240 160 0 66.67"/><polygon class="zb-p" points="0 180 0 253.33 240 160 0 180"/></svg></span><span class="nazwa"><svg class="slowo-bidivia-svg" viewBox="415 0 952 320" role="img" aria-label="BIDIVIA"><path class="zb-g" d="M530.64,157.95c22.84,5.78,34.98,20.81,34.98,45.67,0,34.11-22.26,52.32-65.33,52.32h-84.41V64h77.18c43.36,0,65.62,17.63,65.62,50.88,0,21.68-9.54,35.55-28.04,42.49v.58ZM491.62,148.98c30.64,0,45.96-11.27,45.96-32.95s-15.32-32.66-44.8-32.66h-55.5v65.62h54.34ZM499.71,236.57c29.48,0,44.23-11.27,44.23-33.82s-15.03-34.4-45.38-34.4h-61.28v68.22h62.44Z"/><path class="zb-g" d="M598.45,64h21.39v191.94h-21.39V64Z"/><path class="zb-g" d="M736.56,64c63.59,0,101.75,36.13,101.75,95.68s-38.16,96.26-101.75,96.26h-73.71V64h73.71ZM735.7,236.57c50.87,0,80.94-28.62,80.94-76.89s-30.06-76.31-80.94-76.31h-51.45v153.2h51.45Z"/><path class="zb-g" d="M871.01,64h21.39v191.94h-21.39V64Z"/><path class="zb-g" d="M998.22,255.94l-83.25-191.94h23.41l69.95,164.48h.58l69.95-164.48h22.84l-83.25,191.94h-20.23Z"/><path class="zb-g" d="M1124.74,64h21.39v191.94h-21.39V64Z"/><path class="zb-g" d="M1323.93,212.87h-113.02l-19.66,43.07h-22.55l89.03-191.94h20.23l89.03,191.94h-23.41l-19.66-43.07ZM1267.27,88.86l-47.7,104.64h95.68l-47.41-104.64h-.58Z"/></svg></span></div>
+  <span class="tytul-mob" id="tytul-mob">Przetargi</span>
+  <button type="button" class="menu-btn" id="menu-btn" onclick="przelaczMenu()" aria-label="Menu" data-ik="menu"></button>
+  <nav id="nav">
+    <div class="nav-grupa g1" title="Praca: przetargi, projekty, kosztorysy, budowy">
+      <button data-w="pulpit" data-ik="siatka"><span class="etykieta">Przegląd</span></button>
+      <button data-w="zam_nowe" data-strona="zamawiajacy" data-ik="plus"><span class="etykieta">Nowe zamówienie</span></button>
+      <button data-w="zam_zapytania" data-strona="zamawiajacy" data-ik="mail"><span class="etykieta">Moje zapytania</span></button>
+    <button data-w="zam_projekty" data-strona="zamawiajacy" data-ik="folder"><span class="etykieta">Projekty zamówień</span></button>
+      <button data-w="zam_kosztorys" data-strona="zamawiajacy" data-ik="kalkulator"><span class="etykieta">Kosztorys prac</span></button>
+      <button data-w="zam_weryfikacja" data-strona="zamawiajacy" data-ik="alarm"><span class="etykieta">Sprawdź dokumentację</span></button>
+      <button data-w="zam_dokumentacja" data-strona="zamawiajacy" data-ik="dokument"><span class="etykieta">Sporządź dokumentację</span></button>
+      <button data-w="zam_realizacja" data-strona="zamawiajacy" data-ik="kask"><span class="etykieta">Realizacja umów</span></button>
+      <button data-w="zam_oferty" data-strona="zamawiajacy" data-ik="trofeum"><span class="etykieta">Sprawdzenie ofert</span></button>
+      <button data-w="inw_projekty" data-strona="inwestor" data-ik="folder"><span class="etykieta">Mój dom – projekt i kosztorys</span></button>
+      <button data-w="inw_budowa" data-strona="inwestor" data-ik="kask"><span class="etykieta">Budowa</span></button>
+      <button data-w="przetargi" data-strona="wykonawca" class="akt" data-ik="szukaj"><span class="etykieta">Przetargi</span></button>
+      <button data-w="projekty" data-strona="wykonawca" data-ik="folder"><span class="etykieta">Projekty z przetargów</span></button>
+      <button data-w="wyniki" data-strona="wykonawca" data-ik="trofeum"><span class="etykieta">Wygrane i przegrane</span></button>
+      <button data-w="wlasne" data-strona="wykonawca" data-ik="teczka"><span class="etykieta">Własne projekty</span></button>
+      <button data-w="przetargi" data-strona="dostawca" data-ik="szukaj"><span class="etykieta">Przetargi – dostawy i usługi</span></button>
+      <button data-w="kalk_pracy" data-ik="kalkulator"><span class="etykieta">Kalkulator kosztów pracy</span></button>
+      <button data-w="plan_spr" data-strona="zamawiajacy" data-ik="kalendarz"><span class="etykieta">Plan i sprawozdania</span></button>
+      <button data-w="olioc" data-strona="zamawiajacy" data-ik="alarm"><span class="etykieta">Ochrona ludności</span></button>
+      <button data-w="projekty" data-strona="dostawca" data-ik="folder"><span class="etykieta">Oferty</span></button>
+      <button data-w="dos_realizacja" data-strona="dostawca" data-ik="kask"><span class="etykieta">Realizacja umów</span></button>
+      <button data-w="wyniki" data-strona="dostawca" data-ik="trofeum"><span class="etykieta">Wygrane i przegrane</span></button>
+      <button data-w="kosztorys" data-strona="wykonawca" data-ik="kalkulator"><span class="etykieta">Kosztorysowanie</span></button>
+      <button data-w="kos_projekty" data-strona="kosztorysant" data-ik="kalkulator"><span class="etykieta">Kosztorysy</span></button>
+      <button data-w="dot_szukaj" data-strona="dotacje" data-ik="szukaj"><span class="etykieta">Wyszukaj dotację</span></button>
+      <button data-w="dot_nadchodzace" data-strona="dotacje" data-ik="kalendarz"><span class="etykieta">Nadchodzące nabory</span></button>
+      <button data-w="dot_wnioski" data-strona="dotacje" data-ik="dokument"><span class="etykieta">Uzyskaj dotację</span></button>
+      <button data-w="dot_projekty" data-strona="dotacje" data-ik="portfel"><span class="etykieta">Rozliczanie dotacji</span></button>
+      <button data-w="dot_zapytania" data-strona="dotacje" data-ik="dokument"><span class="etykieta">Zapytania ofertowe</span></button>
+      <button data-w="nier" data-strona="nieruchomosci" data-ik="teczka"><span class="etykieta">Rzeczoznawca / DD / wycena</span></button>
+      <button data-w="zam_oferty" data-strona="dotacje" data-ik="trofeum"><span class="etykieta">Sprawdzenie ofert</span></button>
+      <button data-w="realizacja" data-strona="wykonawca" data-ik="kask"><span class="etykieta">W realizacji</span></button>
+      <button data-w="cel" class="nav-cel" data-ik="przelacz"><span class="etykieta">Zmień: co chcesz zrobić</span></button>
+    </div>
+    <div class="nav-grupa g2" title="Firma: klienci, hurtownie, pracownicy">
+      <button data-w="hurtownie" data-strona="inwestor" data-ik="ciezarowka"><span class="etykieta">Hurtownie</span></button>
+      <button data-w="hurtownie" data-strona="kosztorysant" data-ik="ciezarowka"><span class="etykieta">Hurtownie</span></button>
+      <button data-w="klienci" data-strona="wykonawca" data-ik="wizytowka"><span class="etykieta">Klienci</span></button>
+      <button data-w="klienci" data-strona="dostawca" data-ik="wizytowka"><span class="etykieta">Klienci</span></button>
+      <button data-w="hurtownie" data-strona="wykonawca" data-ik="ciezarowka"><span class="etykieta">Hurtownie</span></button>
+      <button data-w="pracownicy" data-strona="wykonawca" data-ik="ludzie"><span class="etykieta">Pracownicy</span></button>
+      <button data-w="kadry" data-strona="wykonawca" data-ik="teczka"><span class="etykieta">Kadry</span></button>
+      <button data-w="place" data-strona="wykonawca" data-ik="portfel"><span class="etykieta">Płace</span></button>
+    </div>
+    <div class="nav-grupa g3" title="Program: profil, archiwum, instrukcja">
+      <button data-w="firma" data-ik="wizytowka"><span class="etykieta">Profil firmy</span></button>
+      <button data-w="archiwum" data-ik="teczka"><span class="etykieta">Archiwum</span></button>
+      <button data-w="konta" class="tylko-admin" data-ik="ludzie"><span class="etykieta">Konta i aktywność</span></button>
+      <button data-w="windykacja" data-ik="procent" style="display:none"><span class="etykieta">Windykacja</span></button>
+      <button data-w="leady" data-ik="ludzie" style="display:none"><span class="etykieta">Leady z przetargów</span></button>
+      <button data-w="odwolania" data-ik="protokol" style="display:none"><span class="etykieta">Odwołania od przetargów</span></button>
+      <button data-w="ksiegowosc" data-ik="portfel" style="display:none"><span class="etykieta">Księgowość</span></button>
+      <button data-w="ustawienia" data-ik="suwaki"><span class="etykieta">Ustawienia</span></button>
+      <button data-w="instrukcja" data-ik="ksiazka"><span class="etykieta">Instrukcja</span></button>
+      <button data-w="start" data-ik="przelacz"><span class="etykieta">Zmień tryb</span></button>
+    </div>
+  </nav>
+  <div class="naglowek-prawy"><button type="button" id="instaluj" class="ukryj" data-ik="pobierz" onclick="instalujAplikacje()"><span class="etykieta">Zainstaluj na telefonie</span></button>
+  <div class="wyloguj"><button type="button" id="zmien-haslo" data-ik="odswiez" title="Zmień hasło" onclick="location.href='/zmien-haslo'"><span class="etykieta">Zmień hasło</span></button></div>
+  <form method="post" action="/logout" class="wyloguj"><button data-ik="wyloguj"><span class="etykieta">Wyloguj</span></button></form></div>
 </header>
 
+<button type="button" class="pomoc-btn" id="pomoc-btn" onclick="przelaczPomoc()" title="Pomoc – zapytaj o obsługę programu" aria-label="Pomoc – czat">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.7A8 8 0 1 1 21 12z"/><path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01" stroke-width="3"/></svg>
+  <span>Pomoc</span></button>
+<div class="pomoc-panel ukryj" id="pomoc-panel">
+  <div class="pomoc-gora"><b>Pomoc – zapytaj o program</b><button class="maly" onclick="przelaczPomoc()">✕</button></div>
+  <div class="pomoc-czat" id="pomoc-czat"></div>
+  <div class="podpowiedzi" id="pomoc-podp"></div>
+  <div class="pasek" style="margin:6px 0 0"><input id="pomoc-pyt" placeholder="np. Jak dodać nową fakturę?" style="flex:1" onkeydown="if (event.key === 'Enter') zapytajPomoc()">
+    <button class="glowny maly" onclick="zapytajPomoc()">Zapytaj</button></div>
+  <div class="opis" style="margin:6px 0 0;font-size:12px"><a href="#" onclick="instrukcjaDlaWidoku(); return false">Otwórz instrukcję do tego modułu →</a></div>
+</div>
+<div class="pasek-jako ukryj" id="pasek-jako"></div>
+<div class="gora-pasek" id="gora-pasek">
+  <label class="gp-szukaj"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input id="gp-szukaj" placeholder="Szukaj przetargów, projektów, dokumentów…" onkeydown="if (event.key === 'Enter') szukajGlobalnie(this.value)"></label>
+  <div class="gp-uzytkownik" id="gp-uzytkownik"></div>
+</div>
 <main>
-  <!-- START -->
-  <section id="home">
-    <div class="panel">
-      <label class="muted" for="name">Twoje imię</label>
-      <input type="text" id="name" maxlength="16" placeholder="np. Jakub" style="margin-top:6px">
-    </div>
-    <div class="panel">
-      <h3 style="margin-top:0">Nowy pokój</h3>
-      <p class="muted">Załóż pokój i wyślij znajomym kod albo link.</p>
-      <button class="big" id="btnCreate">Załóż pokój</button>
-    </div>
-    <div class="panel">
-      <h3 style="margin-top:0">Dołącz do gry</h3>
-      <div class="row"><input type="text" id="joinCode" maxlength="4" placeholder="KOD" style="text-transform:uppercase;letter-spacing:4px;font-weight:700"><button class="big" id="btnJoin">Dołącz</button></div>
-    </div>
-    <p class="muted" style="text-align:center"><a href="lokalna.html" style="color:#fff">Gra na jednym urządzeniu (bez internetu) →</a></p>
-    <p class="muted" style="text-align:center;font-size:11px" id="ver">strona 1.4-czat · serwer: sprawdzam…</p>
-  </section>
+  <!-- ================= PROFIL FIRMY ================= -->
+  <section id="w-firma" class="widok ukryj"><h2>Profil firmy</h2><div id="firma"></div></section>
 
-  <!-- POCZEKALNIA -->
-  <section id="lobby" class="hidden">
-    <div class="panel" style="text-align:center">
-      <div class="muted">Kod pokoju</div>
-      <div class="code" id="lCode"></div>
-      <button class="ghost" id="btnShare">📤 Wyślij zaproszenie</button>
-    </div>
-    <div class="panel">
-      <h3 style="margin-top:0">Gracze <span class="muted" id="lCount"></span></h3>
-      <div class="plist" id="lPlayers"></div>
-      <div id="hostCtl" class="acts">
-        <button class="ghost" id="btnBot">+ Dodaj komputer</button>
-        <button class="big" id="btnStart">Rozdaj karty</button>
+  <!-- ================= KONTA I AKTYWNOŚĆ (administrator) ================= -->
+  <section id="w-konta" class="widok ukryj"><h2>Konta i aktywność</h2><div id="konta"></div></section>
+
+  <!-- ================= KSIĘGOWOŚĆ (prototyp – administrator) ================= -->
+  <section id="w-ksiegowosc" class="widok ukryj"><div id="ksieg"></div></section>
+  <section id="w-plan_spr" class="widok ukryj"><h2>Roczny plan zamówień / Sprawozdania do UZP</h2><div id="plan-spr"></div></section>
+  <section id="w-plan_zam" class="widok ukryj"><h2>Roczny plan zamówień</h2><div id="plan-zam"></div></section>
+  <section id="w-zam_zapytania" class="widok ukryj"><h2>Moje zapytania</h2><div id="zam-zapytania"></div></section>
+  <section id="w-olioc" class="widok ukryj"><h2>Ochrona ludności i obrona cywilna</h2><div id="olioc"></div></section>
+  <section id="w-sprawozdanie" class="widok ukryj"><h2>Roczne sprawozdanie o udzielonych zamówieniach</h2><div id="sprawozdanie"></div></section>
+  <section id="w-windykacja" class="widok ukryj"><h2>Windykacja</h2><div id="windykacja"></div></section>
+  <section id="w-leady" class="widok ukryj"><h2>Leady z przetargów</h2><div id="leady"></div></section>
+  <section id="w-kalk_pracy" class="widok ukryj"><h2>Kalkulator kosztów pracy</h2><div id="kalk-pracy"></div></section>
+  <section id="w-odwolania" class="widok ukryj"><h2>Odwołania od przetargów</h2><div id="odwolania"></div></section>
+
+  <!-- ================= ARCHIWUM ================= -->
+  <section id="w-archiwum" class="widok ukryj"><h2>Archiwum</h2><div id="archiwum"></div></section>
+
+  <!-- ================= PULPIT (kafelki modułów) ================= -->
+  <section id="w-pulpit" class="widok ukryj"><div id="pulpit"></div></section>
+
+  <!-- ================= START ================= -->
+  <section id="w-cel" class="widok ukryj"><div class="cel-ekran"><h1 id="cel-tytul">Co chcesz zrobić?</h1><div id="cel-kafle" class="cel-kafle"></div>
+    <button class="maly cel-wroc" onclick="pokaz('start')">← Zmień rodzaj działalności</button></div></section>
+  <section id="w-start" class="widok">
+    <div class="start">
+      <h1>Bidivia</h1>
+      <p class="opis">Wybierz, po której stronie zamówień i inwestycji pracujesz.</p>
+      <div class="start-karty">
+        <button class="start-karta wyk" onclick="wybierzStrone('wykonawca', true)">
+          <span class="start-ik" data-ik="kask"></span>
+          <b>Dla Wykonawcy</b>
+          <span>Firma budowlana startująca w przetargach i zleceniach</span>
+          <ul><li>Wyszukiwanie przetargów i analiza AI</li><li>Oferty, kosztorysy, umowy</li>
+            <li>Budowy w realizacji, hurtownie</li><li>Pracownicy i płace</li></ul>
+
+        </button>
+        <button class="start-karta dos" onclick="wybierzStrone('dostawca', true)">
+          <span class="start-ik" data-ik="ciezarowka"></span>
+          <b>Dla Dostawcy / Usługodawcy</b>
+          <span>Firma składająca oferty w przetargach na dostawy i usługi</span>
+          <ul><li>Przetargi na dostawy i usługi – także szpitale, uczelnie, spółki</li><li>Formularz cenowy i załączniki według ogłoszenia</li>
+            <li>Realizacja umów: dostawy, faktury, odbiory</li><li>Wygrane i przegrane</li></ul>
+        </button>
+        <button class="start-karta pra" onclick="wybierzStrone('prawnik', true)">
+          <span class="start-ik" data-ik="dokument"></span>
+          <b>Dla Prawnika</b>
+          <span>Radca prawny, adwokat, doradca – dla zamawiającego albo wykonawcy</span>
+          <ul><li>Sprawdzenie dokumentacji: roboty budowlane, usługi, dostawy – według trybu</li><li>Uwagi z podstawą prawną i propozycją brzmienia</li>
+            <li>Opinia prawna (pismo Word) i raport uwag</li><li>Sporządzenie dokumentacji postępowania</li></ul>
+        </button>
+        <button class="start-karta zam" onclick="ustawZamPryw(false); wybierzStrone('zamawiajacy', true)">
+          <span class="start-ik" data-ik="teczka"></span>
+          <b>Dla Zamawiającego</b>
+          <span>Inwestor, gmina, wspólnota, firma zlecająca roboty</span>
+          <ul><li>Kosztorys inwestorski z dokumentacji</li><li>Sprawdzenie dokumentacji przetargowej</li>
+            <li>Sporządzenie SWZ, zapytania, OPZ, umowy</li><li>Sprawdzenie i ranking złożonych ofert</li><li>Realizacja umowy po przetargu: inwestycja, usługi, dostawy</li></ul>
+        </button>
+        <button class="start-karta zam" onclick="ustawZamPryw(true); wybierzStrone('zamawiajacy', true)">
+          <span class="start-ik" data-ik="teczka"></span>
+          <b>Dla wspólnot, spółdzielni i deweloperów</b>
+          <span>Zamawiający prywatny – bez przepisów Pzp</span>
+          <ul><li>Zapytanie ofertowe na remont, termomodernizację, budowę, usługi</li><li>Opis, umowa, formularz i protokół wyboru oferty</li>
+            <li>Porównanie ofert i rynkowość cen</li><li>Kalkulator kosztów pracy (sprzątanie, ochrona, zieleń)</li><li>Realizacja: odbiory, faktury, pogoda na budowie</li></ul>
+        </button>
+        <button class="start-karta inw" onclick="wybierzStrone('inwestor', true)">
+          <span class="start-ik" data-ik="teczka"></span>
+          <b>Dla Inwestora indywidualnego</b>
+          <span>Budujesz dom – sam albo z wykonawcami</span>
+          <ul><li>Projekt domu i kosztorys budowy (AI lub własny)</li><li>Materiały, hurtownie, zamówienia</li>
+            <li>Harmonogram budowy i odbiory etapów</li><li>Budżet i wydatki, wykonawcy, formalności, kredyt</li></ul>
+        </button>
+        <button class="start-karta kos" onclick="wybierzStrone('kosztorysant')">
+          <span class="start-ik" data-ik="kalkulator"></span>
+          <b>Kosztorysowanie</b>
+          <span>Sam kosztorys – z projektu albo przedmiaru</span>
+          <ul><li>Kosztorys cenami rynkowymi lub z Twojego cennika</li><li>Poprawki wybranych pozycji</li><li>Wycena materiałów, zapytania do hurtowni</li><li>Przeniesienie do modułu wykonawcy, zamawiającego lub inwestora</li></ul>
+        </button>
+        <button class="start-karta dot" onclick="wybierzStrone('dotacje', true)">
+          <span class="start-ik" data-ik="portfel"></span>
+          <b>Dotacje UE/KPO</b>
+          <span>Firmy, gminy, wspólnoty, rolnicy, organizacje</span>
+          <ul><li>Wyszukaj dotację – według branży i regionu</li><li>Uzyskaj dotację – wniosek wypełniony przez program</li><li>Rozliczanie dotacji – etap albo całość</li></ul>
+        </button>
+        <button class="start-karta nier" onclick="wybierzStrone('nieruchomosci', true)">
+          <span class="start-ik" data-ik="teczka"></span>
+          <b>Dla rzeczoznawcy / Due Diligence / Wycena nieruchomości</b>
+          <span>Inwestorzy, deweloperzy, gminy, rzeczoznawcy, doradcy</span>
+          <ul><li>Due diligence – ryzyka, pisma, raport</li><li>Co i ile można zbudować na działce</li><li>Wycena – projekt operatu do podpisu rzeczoznawcy</li></ul>
+        </button>
       </div>
-      <p class="muted hidden" id="waitHost" style="text-align:center">Czekamy, aż gospodarz rozpocznie grę…</p>
+      <a class="start-oferta" href="/oferta" target="_blank" rel="noopener">
+        <span class="start-ik" data-ik="trofeum"></span>
+        <span class="start-oferta-tekst"><b>Nasza oferta</b>
+          <span>Co zyskuje wykonawca, dostawca, zamawiający i inwestor – korzyści, przykładowe ekrany i PDF do pobrania. Link możesz przekazać klientom bez dostępu do programu.</span></span>
+        <span class="start-oferta-dalej">Zobacz ofertę →</span>
+      </a>
+      <div class="start-linki">
+        <a href="#" class="przycisk" data-ik="suwaki" onclick="pokaz('ustawienia'); return false">Ustawienia</a>
+        <a href="#" class="przycisk" data-ik="ksiazka" onclick="pokaz('instrukcja'); return false">Instrukcja</a>
+      </div>
     </div>
   </section>
 
-  <!-- GRA -->
-  <section id="game" class="hidden">
-    <div class="board" id="board"></div>
-    <div class="panel">
-      <div class="info"><span id="infoL"></span><span id="infoR"></span></div>
-      <div class="trick" id="trick"></div>
-      <div class="hint" id="hint"></div>
-      <div class="hand" id="hand"></div>
+  <!-- ================= PRZETARGI ================= -->
+  <section id="w-wyniki" class="widok"><div id="wyniki" class="pulpit"></div></section>
+  <section id="w-dot_nadchodzace" class="widok"><div id="dot-nadchodzace" class="pulpit"></div></section>
+  <section id="w-dot_szukaj" class="widok"><div id="dot-szukaj" class="pulpit"></div></section>
+  <section id="w-zam_nowe" class="widok"><div id="zam-nowe" class="pulpit"></div></section>
+  <section id="w-przetargi" class="widok">
+    <div id="wysz"></div>
+    <div id="p-wyniki-gora"></div>
+    <div id="p-karty"></div>
+    <div id="p-szczegoly" class="karta ukryj"></div>
+    <details class="bip-panel tylko-admin" id="wiecej-opcji" style="margin-top:16px"><summary><span data-ik="ustawienia"></span> Więcej opcji – źródła i pełna lista</summary>
+    <div id="p-nowe" class="ukryj"></div>
+    <div class="obszar ukryj" id="obszar"></div>
+    <details class="bip-panel" id="bip-panel" ontoggle="if (this.open) ladujBIP()">
+      <summary><span data-ik="flaga"></span> Obserwowane strony zamawiających (urzędy, szpitale, uczelnie, spółki) <span class="licznik-bip" id="bip-licznik"></span></summary>
+      <div id="bip"></div>
+    </details>
+    <details class="bip-panel ukryj" id="slowa-panel" open>
+      <summary><span data-ik="szukaj"></span> Słowa kluczowe wyszukiwania <span class="licznik-bip" id="slowa-licznik"></span></summary>
+      <div id="slowa"></div>
+    </details>
+    <div class="pasek">
+      <button class="maly" data-ik="tabela" onclick="document.body.classList.toggle('lista-tabela'); rysujPrzetargi()">Pełna lista w tabeli (wszystkie pobrane)</button>
+      <button class="maly" data-ik="iskra" onclick="ocenAI()">Oceń nieocenione przez AI</button>
     </div>
-    <div class="panel"><div class="log" id="log"></div></div>
+    <div class="pasek filtry-listy"><span class="opis" style="margin:0"><b>Filtry listy</b> (nie wyszukują ponownie):</span>
+      <select id="p-zakres" onchange="ustawZakres(this.value)" title="Zakres listy">
+        <option value="obszar">Tylko z wybranego obszaru</option>
+        <option value="wszystkie">Wszystkie pobrane</option>
+      </select>
+      <select id="p-filtr" onchange="rysujPrzetargi()">
+        <option value="aktywne">Aktywne (termin nie minął)</option>
+        <option value="wszystkie">Wszystkie</option>
+        <option value="ostatnie">Wyniki ostatniego wyszukiwania</option>
+        <option value="nowe">Nowe od ostatniej wizyty</option>
+        <option value="nieocenione">Nieocenione</option>
+        <option>startujemy</option><option>do analizy</option><option>odpuszczamy</option>
+        <option>oferta złożona</option><option>wygrany</option><option>przegrany</option>
+      </select>
+      <select id="p-typzam" onchange="rysujPrzetargi()" title="Rodzaj zamawiającego">
+        <option value="">Wszyscy zamawiający</option><option value="jst">Urzędy i samorządy</option><option value="szpital">Szpitale i placówki medyczne</option>
+        <option value="uczelnia">Uczelnie i instytuty</option><option value="spolka">Duże spółki i spółki komunalne</option><option value="inny">Inni</option>
+      </select>
+      <select id="p-rodzaj" onchange="rysujPrzetargi()" title="Rodzaj zamówienia">
+        <option value="">Wszystkie rodzaje</option><option value="roboty">Roboty budowlane</option><option value="dostawy">Dostawy</option><option value="uslugi">Usługi</option>
+      </select>
+      <input id="p-szukaj" placeholder="Szukaj w wynikach…" oninput="rysujPrzetargi()">
+      <span class="licznik" id="p-licznik"></span>
+    </div>
+    <p class="opis" id="p-zakres-info" style="margin:4px 0 8px"></p>
+    <div class="tabela-okno"><table id="p-tabela" class="tabela"></table></div>
+    </details>
+  </section>
+
+  <!-- ================= PROJEKTY ================= -->
+  <section id="w-projekty" class="widok ukryj">
+    <div class="uklad">
+      <aside>
+        <h3 id="pr-tytul" style="margin:6px 0 12px">Projekty z przetargów</h3>
+        <div class="zakres-admin-miejsce"></div>
+        <button class="glowny pelny" id="pr-nowy" data-ik="plus" onclick="nowyProjekt()"><span class="etykieta">Nowy projekt</span></button>
+        <input id="pr-szukaj" type="search" placeholder="Szukaj w projektach…" aria-label="Szukaj w projektach" oninput="filtrujProjekty()" style="width:100%;margin:8px 0 4px">
+        <ul id="lista-projektow"></ul>
+      </aside>
+      <div id="projekt" class="projekt"><p class="pusto">Wybierz projekt z listy albo utwórz nowy. Projekt z przetargu
+        utworzysz też przyciskiem „Przygotuj ofertę” w zakładce Przetargi.</p></div>
+    </div>
+  </section>
+
+  <!-- ================= W REALIZACJI ================= -->
+  <section id="w-realizacja" class="widok ukryj">
+    <div class="uklad">
+      <aside><h3 style="margin:6px 0 0">Budowy w realizacji</h3><div class="zakres-admin-miejsce"></div><ul id="lista-realizacji"></ul></aside>
+      <div id="realizacja" class="projekt"><p class="pusto">Wybierz budowę z listy. Projekt trafia tutaj po kliknięciu
+        „Przetarg wygrany – do realizacji” w zakładce Projekty.</p></div>
+    </div>
+  </section>
+
+  <section id="w-zam_oferty" class="widok ukryj">
+    <div class="uklad">
+      <aside><h3 style="margin:6px 0 0">Sprawdzenie ofert</h3>
+        <button class="glowny" data-ik="plus" style="width:100%;margin:8px 0" onclick="nowaOcena()">Nowe sprawdzenie ofert</button><ul id="lista-ocen"></ul></aside>
+      <div id="ocena" class="projekt"><p class="pusto">Wybierz postępowanie z listy albo utwórz nowe sprawdzenie ofert.</p></div>
+    </div>
+  </section>
+  <section id="w-nier" class="widok ukryj">
+    <div class="uklad">
+      <aside><h3 style="margin:6px 0 0">Nieruchomości</h3>
+        <button class="glowny" data-ik="plus" style="width:100%;margin:8px 0" onclick="nowaNier()">Nowa nieruchomość</button><ul id="lista-nier"></ul></aside>
+      <div id="nier" class="projekt"><p class="pusto">Wybierz nieruchomość z listy albo dodaj nową.</p></div>
+    </div>
+  </section>
+  <section id="w-dot_zapytania" class="widok ukryj">
+    <div class="uklad">
+      <aside><h3 style="margin:6px 0 0">Zapytania ofertowe</h3>
+        <button class="glowny" data-ik="plus" style="width:100%;margin:8px 0" onclick="noweZapytanie()">Nowe zapytanie ofertowe</button><ul id="lista-zapytan"></ul></aside>
+      <div id="zapytanie" class="projekt"><p class="pusto">Wybierz zapytanie z listy albo utwórz nowe.</p></div>
+    </div>
+  </section>
+  <section id="w-dos_realizacja" class="widok ukryj">
+    <div class="uklad">
+      <aside><h3 style="margin:6px 0 0">Umowy w realizacji</h3><ul id="lista-dostaw"></ul></aside>
+      <div id="dos-real" class="projekt"><p class="pusto">Wybierz umowę z listy. Umowa trafia tutaj po kliknięciu „Przetarg wygrany – do realizacji” w ofercie.</p></div>
+    </div>
+  </section>
+
+  <!-- ================= KLIENCI ================= -->
+  <section id="w-klienci" class="widok ukryj">
+    <h2>Klienci</h2>
+    <p class="opis">Baza klientów i inwestorów. Wpisz NIP i kliknij „Pobierz dane po NIP” – nazwa, adres, REGON, KRS, status VAT i rachunki
+      pobiorą się z oficjalnego wykazu podatników VAT (Ministerstwo Finansów). Klienci z tej bazy podpowiadają się w umowach.</p>
+    <div id="klienci"></div>
+  </section>
+
+  <!-- ================= HURTOWNIE ================= -->
+  <section id="w-hurtownie" class="widok ukryj">
+    <h2>Hurtownie</h2>
+    <p class="opis">Asortyment to słowa kluczowe po przecinku, np. „blach, tytan, rynn” – hurtownia dostanie w zamówieniu tylko
+      pasujące materiały. Puste pole oznacza wszystkie materiały.</p>
+    <div class="tabela-okno"><table class="tabela" id="h-tabela"></table></div>
+    <div class="pasek" style="margin-top:12px"><button class="zielony" data-ik="plus" onclick="dodajHurtownie()">Dodaj hurtownię</button>
+      <button class="glowny" data-ik="zapisz" onclick="zapiszHurtownie()">Zapisz</button></div>
+    <h2>Historia wysłanych</h2>
+    <div class="tabela-okno"><table class="tabela" id="hist-tabela"></table></div>
+  </section>
+
+  <!-- ================= PRACOWNICY ================= -->
+  <section id="w-pracownicy" class="widok ukryj">
+    <div class="podzakladki">
+      <button class="akt" data-pz="rg" onclick="podzakladka('rg')" data-ik="zegar">Roboczogodziny</button>
+      <button data-pz="kadry" data-mod="kadry" onclick="podzakladka('kadry')" data-ik="teczka">Kadry: dokumenty i terminy</button>
+      <button data-pz="umowy" data-mod="place" onclick="podzakladka('umowy')" data-ik="portfel">Płace (ZUS, podatek)</button>
+    </div>
+    <div id="prac-zakres"></div>
+    <div id="prac-umowy" class="ukryj"></div>
+    <div id="prac-kadry" class="ukryj"></div>
+    <div id="prac-rg">
+    <div class="dwie">
+      <div>
+        <h2>Pracownicy</h2>
+        <div class="karta bez-podgladu" style="margin-top:0;margin-bottom:14px"><h3>Nowy pracownik</h3>
+          <div class="siatka"><label>Imię i nazwisko<input id="np-imie"></label><label>Stanowisko<input id="np-stan" placeholder="np. murarz, tynkarz"></label>
+            <label>Stawka [zł/h]<input id="np-stawka" type="number" min="0" step="0.01"></label><label>Telefon<input id="np-tel"></label></div>
+          <button class="zielony" data-ik="plus" onclick="dodajPracownika()">Dodaj pracownika</button></div>
+        <div class="tabela-okno"><table class="tabela" id="pr-tabela"></table></div>
+        <div class="pasek bez-podgladu" style="margin-top:12px"><button class="glowny" data-ik="zapisz" onclick="zapiszPracownikow()">Zapisz zmiany w tabeli</button></div>
+      </div>
+      <div>
+        <div class="bez-podgladu"><h2 id="g-naglowek">Dodaj roboczogodziny</h2>
+        <div class="karta" style="margin-top:0">
+          <div class="siatka">
+            <label>Data<input type="date" id="g-data"></label>
+            <label>Pracownik<select id="g-prac" onchange="stawkaPrac()"></select></label>
+            <label>Godziny<input type="number" id="g-godz" min="0.25" max="24" step="0.25" value="8" oninput="kwotaGodzin()"></label>
+            <label>Stawka [zł/h]<input type="number" id="g-stawka" min="0" step="0.01" oninput="kwotaGodzin()"></label>
+          </div>
+          <div class="siatka">
+            <label>Projekt / budowa<select id="g-proj"></select></label>
+            <label style="grid-column: span 2">Opis prac<input id="g-opis" placeholder="opcjonalnie"></label>
+          </div>
+          <div class="pasek"><button class="zielony" id="g-przycisk" data-ik="zegar" onclick="dodajGodziny()">Dodaj roboczogodziny</button>
+            <button class="ukryj" id="g-anuluj" onclick="anulujEdycjeGodzin()">Anuluj edycję</button>
+            <span>Wypłata za wpis: <b id="g-kwota" class="mono">–</b></span></div>
+        </div></div>
+      </div>
+    </div>
+    <h2>Rozliczenie</h2>
+    <div class="pasek">
+      <label>Od <input type="date" id="r-od" onchange="ladujGodziny()"></label>
+      <label>Do <input type="date" id="r-do" onchange="ladujGodziny()"></label>
+      <button class="dozw" data-ik="kalendarz" onclick="miesiac(0)">Ten miesiąc</button><button class="dozw" onclick="miesiac(-1)">Poprzedni miesiąc</button>
+      <button class="glowny dozw" data-ik="pobierz" onclick="eksportGodzin()">Pobierz Excel</button>
+    </div>
+    <div id="r-podsum"></div>
+    <h3 style="margin-top:16px">Ewidencja w okresie</h3>
+    <div class="tabela-okno"><table class="tabela" id="r-wpisy"></table></div>
+    </div>
+  </section>
+
+  <!-- ================= INSTRUKCJA ================= -->
+  <section id="w-instrukcja" class="widok ukryj">
+    <div class="pasek">
+      <h2 style="margin:0;flex:1">Instrukcja obsługi</h2>
+      <a class="przycisk dozw" data-ik="pobierz" href="/static/instrukcja.pdf" download>Pobierz PDF</a>
+      <a class="przycisk dozw" data-ik="link" href="/static/instrukcja.html" target="_blank" rel="noopener">Otwórz w nowym oknie</a>
+    </div>
+    <div class="instrukcja-szybko">
+      <b>Szybki start:</b> 1) <b>Przetargi</b> – wybierz obszar i kliknij „Szukaj teraz” · 2) przy wybranym przetargu „Przygotuj ofertę” ·
+      3) w projekcie dodaj dokumenty i kliknij „Przygotuj ofertę i kosztorys” · 4) po wygranej „Przetarg wygrany – do realizacji”.
+    </div>
+    <div class="instr-uklad">
+      <aside class="instr-spis" id="instr-spis"></aside>
+      <iframe id="instr-ramka" title="Instrukcja obsługi" class="instrukcja-ramka"></iframe>
+    </div>
+  </section>
+
+  <!-- ================= USTAWIENIA ================= -->
+  <section id="w-ustawienia" class="widok ukryj">
+    <div id="u-uzytkownicy"></div>
+    <h2 style="margin-top:28px">Ustawienia</h2>
+    <form id="u-form" class="formularz" onsubmit="zapiszUstawienia(event)"></form>
   </section>
 </main>
 
-<div class="ov hidden" id="ov"><div class="mod" id="mod"></div></div>
-<div class="toast hidden" id="toast"></div>
-
-<!-- CZAT -->
-<button id="chatBtn" class="chatbtn hidden" aria-label="Czat">💬<span id="chatBadge" class="badge hidden">0</span></button>
-<div id="chatBox" class="chatbox hidden">
-  <div class="chathead"><b>Czat</b><button class="ghost sm" id="chatClose">✕</button></div>
-  <div id="chatMsgs" class="chatmsgs"></div>
-  <div class="quick"><button class="ghost sm" data-q="😂">😂</button><button class="ghost sm" data-q="👍">👍</button><button class="ghost sm" data-q="🥒">🥒</button><button class="ghost sm" data-q="😡">😡</button><button class="ghost sm" data-q="Dobra gra!">Dobra gra!</button></div>
-  <form id="chatForm" class="chatform"><input type="text" id="chatIn" maxlength="200" placeholder="Napisz wiadomość…" autocomplete="off"><button>Wyślij</button></form>
-</div>
-
-<script src="/socket.io/socket.io.js"></script>
-<script>
-"use strict";
-const $=id=>document.getElementById(id);
-const RL={11:'W',12:'D',13:'K',14:'A'};
-const rl=r=>RL[r]||String(r);
-const isRed=s=>s==='♦'||s==='♥';
-const is2C=c=>c.r===2&&c.s==='♣';
-const cname=c=>rl(c.r)+c.s;
-const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const store={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v);}catch(e){}}};
-
-let token=store.get('ogor_token');
-if(!token){token='p-'+Math.random().toString(36).slice(2)+Date.now().toString(36);store.set('ogor_token',token);}
-let room=store.get('ogor_room');
-let S=null, rulesOpen=false, wasMyTurn=false;
-$('name').value=store.get('ogor_name')||'';
-const qr=new URLSearchParams(location.search).get('room');
-if(qr){$('joinCode').value=qr.toUpperCase();if(room&&room!==qr.toUpperCase())room=null;}
-
-const socket=io();
-socket.on('connect',()=>{$('conn').classList.add('hidden');if(room)socket.emit('join',{code:room,name:myName(),token});});
-socket.on('disconnect',()=>$('conn').classList.remove('hidden'));
-socket.on('state',s=>{S=s;room=s.code;store.set('ogor_room',room);render();});
-socket.on('err',m=>toast(m));
-socket.on('noroom',m=>{toast(m);goHome();});
-socket.on('kicked',m=>{toast(m);goHome();});
-const PAGE_VER='1.4-czat';let serverVer=null;
-socket.on('hello',h=>{serverVer=h&&h.version;$('ver').textContent=`strona ${PAGE_VER} · serwer ${serverVer||'stary'}`+(serverVer===PAGE_VER?' ✓':' ⚠️ podmień server.js');});
-setTimeout(()=>{if(!serverVer)$('ver').textContent=`strona ${PAGE_VER} · serwer STARY ⚠️ podmień server.js na GitHubie`;},5000);
-let chat=[],unread=0,chatOpen=false,pendingChat=null;
-socket.on('chatHistory',h=>{chat=h||[];renderChat();});
-socket.on('chat',m=>{if(S&&m.id===S.me)clearTimeout(pendingChat);chat.push(m);if(chat.length>60)chat.shift();
-  if(!chatOpen&&S&&m.id!==S.me){unread++;toast(m.name+': '+m.text);}renderChat();});
-function renderChat(){
-  const box=$('chatMsgs');
-  box.innerHTML=chat.length?chat.map(m=>{const d=new Date(m.t);return `<div class="m ${S&&m.id===S.me?'mine':''}"><b>${esc(m.name)}:</b> ${esc(m.text)}<span class="t">${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}</span></div>`;}).join(''):'<div class="muted">Brak wiadomości. Napisz coś!</div>';
-  box.scrollTop=box.scrollHeight;
-  $('chatBadge').textContent=unread;$('chatBadge').classList.toggle('hidden',!unread);
-}
-function setChat(open){chatOpen=open;$('chatBox').classList.toggle('hidden',!open);$('chatBtn').classList.toggle('hidden',open||!S);if(open){unread=0;renderChat();}}
-$('chatBtn').onclick=()=>setChat(true);
-$('chatClose').onclick=()=>setChat(false);
-function sendChat(v){
-  socket.emit('chat',{text:v});
-  clearTimeout(pendingChat);
-  pendingChat=setTimeout(()=>toast(serverVer?'Wiadomość nie dotarła – sprawdź połączenie.':'Serwer nie obsługuje czatu – podmień server.js na GitHubie.'),3000);
-}
-$('chatForm').onsubmit=e=>{e.preventDefault();const v=$('chatIn').value.trim();if(!v)return;sendChat(v);$('chatIn').value='';};
-document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>sendChat(b.dataset.q));
-
-function myName(){return $('name').value.trim();}
-function needName(){const n=myName();if(!n){toast('Najpierw wpisz swoje imię.');$('name').focus();return null;}store.set('ogor_name',n);return n;}
-$('btnCreate').onclick=()=>{const n=needName();if(n)socket.emit('create',{name:n,token});};
-$('btnJoin').onclick=()=>{const n=needName();if(!n)return;const c=$('joinCode').value.trim().toUpperCase();if(c.length!==4)return toast('Kod ma 4 litery.');room=c;socket.emit('join',{code:c,name:n,token});};
-$('btnBot').onclick=()=>socket.emit('addBot');
-$('btnStart').onclick=()=>socket.emit('start');
-$('btnLeave').onclick=()=>{
-  if(S&&S.phase!=='lobby'&&S.phase!=='over'&&!confirmLeave())return;
-  socket.emit('leave');goHome();
-};
-function confirmLeave(){return window.confirm('Wyjść z gry? Twoje miejsce przejmie komputer.');}
-$('btnShare').onclick=async()=>{
-  const url=location.origin+'/?room='+S.code;
-  const text='Zagraj ze mną w Ogóra! Kod pokoju: '+S.code;
-  if(navigator.share){try{await navigator.share({title:'Ogór',text,url});return;}catch(e){}}
-  try{await navigator.clipboard.writeText(text+'\n'+url);toast('Skopiowano link do schowka.');}catch(e){toast(url);}
-};
-$('btnRules').onclick=showRules;
-
-function goHome(){chat=[];unread=0;setChat(false);$('chatBtn').classList.add('hidden');S=null;room=null;store.set('ogor_room',null);history.replaceState(null,'','/');closeModal();show('home');$('btnLeave').classList.add('hidden');}
-function show(id){for(const s of ['home','lobby','game'])$(s).classList.toggle('hidden',s!==id);}
-let tt;function toast(m){const t=$('toast');t.textContent=m;t.classList.remove('hidden');clearTimeout(tt);tt=setTimeout(()=>t.classList.add('hidden'),3500);}
-
-function cardHTML(c,cls='',k){
-  return `<div ${k!=null?`data-k="${k}"`:''} class="card ${isRed(c.s)?'red':''} ${is2C(c)?'c2':''} ${cls}"><span class="r">${rl(c.r)}</span><span class="s1">${c.s}</span><span class="s">${c.s}</span></div>`;
-}
-
-function render(){
-  if(!S)return;
-  $('btnLeave').classList.remove('hidden');
-  if(!chatOpen)$('chatBtn').classList.remove('hidden');
-  const isHost=S.host===S.me;
-  if(S.phase==='lobby'){
-    show('lobby');if(!rulesOpen)closeModal();
-    $('lCode').textContent=S.code;
-    $('lCount').textContent=`(${S.players.length}/8)`;
-    $('lPlayers').innerHTML=S.players.map(p=>`<div class="it"><span>${p.bot?'🤖':'🙂'} ${esc(p.name)}${p.id===S.host?' 👑':''}${p.id===S.me?' <span class="muted">(Ty)</span>':''}</span>
-      ${isHost&&p.id!==S.me?`<button class="ghost sm" data-rm="${esc(p.id)}">Usuń</button>`:''}</div>`).join('');
-    $('hostCtl').classList.toggle('hidden',!isHost);
-    $('waitHost').classList.toggle('hidden',isHost);
-    $('btnStart').disabled=S.players.length<2;
-    $('btnBot').disabled=S.players.length>=8;
-    return;
-  }
-  show('game');
-  // tablica wyników
-  $('board').innerHTML=S.players.map(p=>`
-    <div class="pl ${p.turn?'turn':''} ${p.out?'out':''} ${p.id===S.me?'me':''}">
-      <div class="nm">${p.bot?'🤖':'🙂'} ${esc(p.name)}${p.id===S.host?' 👑':''}</div>
-      <div class="sub"><span>${p.points} / ${S.limit} pkt</span><span>${p.out?'odpadł':p.cards+' 🂠'}</span></div>
-      ${!p.connected?`<div class="off">rozłączony ${isHost?`<button class="ghost sm" data-bot="${esc(p.id)}">→ komputer</button>`:''}</div>`:''}
-      <div class="bar"><i style="width:${Math.min(100,p.points/S.limit*100)}%"></i></div>
-    </div>`).join('');
-  $('infoL').textContent=`Rozdanie ${S.roundNo} · Lewa ${Math.min(S.trickNo,6)}/6`;
-  $('infoR').textContent=S.leader?`Wychodzi: ${S.leader}`:'';
-  $('trick').innerHTML=S.trick.length?S.trick.map(t=>`<div class="slot">${cardHTML(t.c,t.top?'top':'')}<span class="who">${esc(t.name)}</span></div>`).join(''):'<span class="empty">Stół jest pusty</span>';
-  let hint='';
-  const me=S.players.find(p=>p.id===S.me);
-  if(S.reveal)hint='<b>Wykładamy karty!</b> Przegrywa najwyższa.';
-  else if(S.phase!=='playing')hint='';
-  else if(S.myTurn)hint=S.top==null?'<b>Twój ruch</b> – wychodzisz, zagraj dowolną kartę.':`<b>Twój ruch</b> – daj <b>${rl(S.top)}</b> lub wyżej, albo swoją najniższą kartę.`;
-  else if(S.turnName)hint=`Ruch: <b>${esc(S.turnName)}</b>…`;
-  else hint='Koniec lewy…';
-  if(me&&me.out&&S.phase==='playing')hint='Odpadłeś – oglądasz grę. '+hint;
-  $('hint').innerHTML=hint;
-  $('hand').innerHTML=S.hand.map((c,k)=>cardHTML(c,S.myTurn?(S.legal.includes(k)?'legal':'dim'):'',k)).join('');
-  $('log').innerHTML=S.log.map(l=>`<div>${esc(l)}</div>`).join('');
-  if(S.myTurn&&!wasMyTurn&&navigator.vibrate)navigator.vibrate(120);
-  wasMyTurn=S.myTurn;
-  // okno końca rozdania / gry
-  if(S.phase==='roundEnd'||S.phase==='over'){if(!rulesOpen)openModal(summaryHTML(isHost));}
-  else if(!rulesOpen)closeModal();
-}
-
-function summaryHTML(isHost){
-  const m=S.summary;
-  const lines=m.losers.map(l=>`<b>${esc(l.name)}</b> – <b>${cname(l.card)}</b>, +${l.pts} pkt`).join('<br>');
-  const rows=m.table.map(p=>`<tr style="${p.out?'opacity:.45':''}"><td>${esc(p.name)}${p.lost?' 🥒':''}${p.out?' – odpadł':''}</td><td>${p.points} / ${S.limit}</td></tr>`).join('');
-  let h=`<h2>Koniec rozdania ${m.round}</h2>
-    <p>${m.losers.length>1?'Remis na najwyższej karcie – przegrywają wszyscy:':'Przegrywa:'}<br>${lines}</p>
-    ${m.doubled?`<p>🟣 ${esc(m.c2name)} zachował 2♣ do końca – punkty przegranego razy 2!</p>`:''}
-    ${m.playoff?`<p>⚔️ <b>Dogrywka!</b> Wszyscy pozostali przekroczyli ${S.limit-1} pkt jednocześnie – grają kolejne rozdanie. Kto w nim przegra, odpada.</p>`:''}
-    ${m.outs.length?`<p>❌ Odpada: <b>${m.outs.map(esc).join(', ')}</b></p>`:''}
-    <table>${rows}</table>`;
-  if(S.phase==='over'){
-    h+=`<h2>🏆 Wygrywa ${esc(S.winner)}!</h2>`;
-    if(m.nextGame)h+=`<p class="muted">Następną grę zaczyna <b>${esc(m.nextGame)}</b> – odpadł jako pierwszy.</p>`;
-    h+=isHost?`<div class="acts"><button class="big" data-act="again">Zagraj jeszcze raz</button></div>`:`<p class="muted">Gospodarz może rozpocząć nową grę.</p>`;
-  } else {
-    h+=`<p class="muted">Następne rozdanie zaczyna: <b>${esc(m.next)}</b></p>`;
-    h+=isHost?`<div class="acts"><button class="big" data-act="next">Następne rozdanie</button></div>`:`<p class="muted">Czekamy na gospodarza…</p>`;
-  }
-  return h;
-}
-
-document.addEventListener('click',e=>{
-  const t=e.target;
-  if(t.dataset.rm)socket.emit('remove',{id:t.dataset.rm});
-  if(t.dataset.bot)socket.emit('toBot',{id:t.dataset.bot});
-  if(t.dataset.act==='next')socket.emit('next');
-  if(t.dataset.act==='again')socket.emit('again');
-  if(t.id==='mClose'){rulesOpen=false;closeModal();render();}
-  const card=t.closest&&t.closest('#hand .card.legal');
-  if(card&&S&&S.myTurn){S.myTurn=false;socket.emit('play',{k:+card.dataset.k});}
-});
-
-function openModal(html){$('mod').innerHTML=html;$('ov').classList.remove('hidden');}
-function closeModal(){$('ov').classList.add('hidden');}
-function showRules(){
-  rulesOpen=true;
-  openModal(`<h2>Zasady gry w Ogóra</h2><ul>
-    <li>Gra od 2 do 8 osób, talia 52 kart. Każdy dostaje 6 kart, rozdawanych po dwie.</li>
-    <li>Wartości kart: 2–10 według numeru, Walet 11, Dama 12, Król 13, As 14. Kolor nie ma znaczenia (poza 2♣).</li>
-    <li>W pierwszym rozdaniu zaczyna gracz nr 1, w kolejnych – ten, kto przegrał poprzednie. Kolejną całą grę zaczyna ten, kto w poprzedniej odpadł jako pierwszy.</li>
-    <li>Wychodzący kładzie dowolną kartę. Każdy następny musi dać kartę <b>równą lub wyższą</b> od najwyższej na stole – albo, jeśli nie chce (lub nie może), swoją <b>najniższą</b> kartę.</li>
-    <li>Najniższa karta w talii to <b>2♣</b> – jeśli masz ją, a dajesz najniższą, musisz dać właśnie 2♣.</li>
-    <li>Kolejną lewę zaczyna ten, kto jako ostatni położył najwyższą kartę. Wyjątek: kto wyrzucił 2♣, ten zaczyna następną lewę.</li>
-    <li>Po 5 lewach każdemu zostaje jedna karta. W ostatniej rundzie wszyscy ją wykładają – przegrywa ten, kto ma <b>najwyższą</b>. Przy remisie przegrywają <b>wszyscy</b> z najwyższą kartą, a następne rozdanie zaczyna ten z nich, kto ma więcej punktów (przy równych – ten, kto siedział dalej od wychodzącego). Przegrany dostaje tyle punktów karnych, ile jest warta jego karta. Pozostali nie dostają nic.</li>
-    <li>Jeśli ktoś zachował <b>2♣ do samego końca</b>, punkty przegranego liczą się <b>x2</b>.</li>
-    <li>Kto zbierze <b>21 lub więcej</b> punktów, odpada. Wygrywa ostatni gracz, który został w grze. Jeśli wszyscy pozostali przekroczą limit w tym samym rozdaniu, grają <b>dogrywkę</b> – kto ją przegra, odpada.</li>
-    </ul><div class="acts"><button id="mClose">Zamknij</button></div>`);
-}
-</script>
+<div id="zadania"></div>
+<div id="komunikat"></div>
+<script src="/static/app.js"></script>
+<script src="/static/ksiegowosc.js"></script>
+<script src="/static/uklad.js"></script>
 </body>
 </html>
